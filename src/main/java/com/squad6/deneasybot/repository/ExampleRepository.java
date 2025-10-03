@@ -6,7 +6,6 @@ import org.springframework.stereotype.Repository;
 public class ExampleRepository {
 
     public String mockProcess(String message) {
-
-    	return "Mensagem '" + message + "' processada no repository";
+        return "Mensagem '" + message + "' processada no repository";
     }
 }
