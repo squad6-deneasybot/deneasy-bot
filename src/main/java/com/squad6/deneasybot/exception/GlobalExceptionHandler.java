@@ -26,4 +26,14 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body("Erro no processamento: " + ex.getMessage());
     }
+
+    @ExceptionHandler(UserNotFoundInErpException.class)
+    public ResponseEntity<Object> handleUserNotFoundInErpException(UserNotFoundInErpException ex) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.NOT_FOUND.value(),
+                "error", "Not Found",
+                "message", ex.getMessage()
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
 }

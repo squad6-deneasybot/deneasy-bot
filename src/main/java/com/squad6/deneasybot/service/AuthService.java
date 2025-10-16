@@ -1,6 +1,8 @@
 package com.squad6.deneasybot.service;
 
+import com.squad6.deneasybot.client.OmieErpClient;
 import com.squad6.deneasybot.exception.InvalidCredentialsException;
+import com.squad6.deneasybot.exception.UserNotFoundInErpException;
 import com.squad6.deneasybot.model.*;
 import com.squad6.deneasybot.repository.UserRepository;
 import com.squad6.deneasybot.util.JwtUtil;
@@ -11,10 +13,12 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final OmieErpClient omieErpClient;
 
-    public AuthService(UserRepository userRepository, JwtUtil jwtUtil) {
+    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
+        this.omieErpClient = omieErpClient;
     }
 
     public void logout(String token) {
@@ -59,5 +63,17 @@ public class AuthService {
 
             default -> throw new RuntimeException("Contexto inválido.");
         }
+    }
+
+    public VerifyEmailResponseDTO validateUserInErp(VerifyEmailRequestDTO requestDTO) {
+        OmieUserDTO erpUser = omieErpClient
+                .findUserByEmail(requestDTO.appKey(), requestDTO.appSecret(), requestDTO.email())
+                .orElseThrow(() -> new UserNotFoundInErpException("Usuário com o e-mail '" + requestDTO.email() + "' não foi encontrado no ERP."));
+
+        UserDTO userDTO = new UserDTO();
+        userDTO.setName(erpUser.nome());
+        userDTO.setEmail(erpUser.email());
+
+        return new VerifyEmailResponseDTO(userDTO, Context.REGISTRATION);
     }
 }
