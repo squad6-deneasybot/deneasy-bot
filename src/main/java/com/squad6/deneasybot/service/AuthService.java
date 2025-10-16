@@ -1,12 +1,20 @@
 package com.squad6.deneasybot.service;
 
+import org.springframework.stereotype.Service;
+
 import com.squad6.deneasybot.client.OmieErpClient;
 import com.squad6.deneasybot.exception.InvalidCredentialsException;
 import com.squad6.deneasybot.exception.UserNotFoundInErpException;
-import com.squad6.deneasybot.model.*;
+import com.squad6.deneasybot.model.Context;
+import com.squad6.deneasybot.model.OmieUserDTO;
+import com.squad6.deneasybot.model.User;
+import com.squad6.deneasybot.model.UserDTO;
+import com.squad6.deneasybot.model.VerifyEmailCodeRequestDTO;
+import com.squad6.deneasybot.model.VerifyEmailCodeResponseDTO;
+import com.squad6.deneasybot.model.VerifyEmailRequestDTO;
+import com.squad6.deneasybot.model.VerifyEmailResponseDTO;
 import com.squad6.deneasybot.repository.UserRepository;
 import com.squad6.deneasybot.util.JwtUtil;
-import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
@@ -45,30 +53,31 @@ public class AuthService {
         Context context = dto.context();
 
         switch (context) {
-            case REGISTRATION -> {
-                userDTO.setSessionToken(sessionToken);
-                return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
-            }
+        case REGISTRATION -> {
+            userDTO.setSessionToken(sessionToken);
+            return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
+        }
 
-            case LOGIN -> {
-                User user = userRepository.findByEmail(userDTO.getEmail())
-                        .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        case LOGIN -> {
+            User user = userRepository.findByEmail(userDTO.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-                user.setSessionToken(sessionToken);
-                userRepository.save(user);
+            user.setSessionToken(sessionToken);
+            userRepository.save(user);
 
-                userDTO.setSessionToken(sessionToken);
-                return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
-            }
+            userDTO.setSessionToken(sessionToken);
+            return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
+        }
 
-            default -> throw new RuntimeException("Contexto inválido.");
+        default -> throw new RuntimeException("Contexto inválido.");
         }
     }
 
     public VerifyEmailResponseDTO validateUserInErp(VerifyEmailRequestDTO requestDTO) {
         OmieUserDTO erpUser = omieErpClient
                 .findUserByEmail(requestDTO.appKey(), requestDTO.appSecret(), requestDTO.email())
-                .orElseThrow(() -> new UserNotFoundInErpException("Usuário com o e-mail '" + requestDTO.email() + "' não foi encontrado no ERP."));
+                .orElseThrow(() -> new UserNotFoundInErpException(
+                        "Usuário com o e-mail '" + requestDTO.email() + "' não foi encontrado no ERP."));
 
         UserDTO userDTO = new UserDTO();
         userDTO.setName(erpUser.nome());
