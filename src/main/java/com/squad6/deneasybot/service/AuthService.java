@@ -82,6 +82,7 @@ public class AuthService {
         UserDTO userDTO = new UserDTO();
         userDTO.setName(erpUser.nome());
         userDTO.setEmail(erpUser.email());
+        userDTO.setPhone(erpUser.celular());
 
         return new VerifyEmailResponseDTO(userDTO, Context.REGISTRATION);
     }
