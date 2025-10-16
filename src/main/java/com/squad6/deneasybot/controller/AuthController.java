@@ -28,7 +28,7 @@ public class AuthController {
             @RequestHeader("X-Code") String inputCode,
             @RequestBody VerifyEmailCodeRequestDTO dto
     ) {
-        VerifyEmailCodeResponseDTO response = authService.verifyEmailCode(dto.getTokenHash(), inputCode, dto);
+        VerifyEmailCodeResponseDTO response = authService.verifyEmailCode(dto.tokenHash(), inputCode, dto);
         return ResponseEntity.ok(response);
     }
 }

@@ -37,8 +37,8 @@ public class AuthService {
 
         String sessionToken = jwtUtil.generateSessionToken();
 
-        UserDTO userDTO = dto.getUser();
-        Context context = dto.getContext();
+        UserDTO userDTO = dto.user();
+        Context context = dto.context();
 
         switch (context) {
             case REGISTRATION -> {
