@@ -14,3 +14,7 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+
+omie:
+  api:
+   url: https://app.omie.com.br/api/v1/crm/usuarios/
