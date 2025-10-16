@@ -11,3 +11,6 @@ spring:
     show-sql: true
   application:
     name: deneasybot
+
+jwt:
+  secret: ${JWT_SECRET}
