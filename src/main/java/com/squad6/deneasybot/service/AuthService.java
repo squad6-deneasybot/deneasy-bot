@@ -5,14 +5,7 @@ import org.springframework.stereotype.Service;
 import com.squad6.deneasybot.client.OmieErpClient;
 import com.squad6.deneasybot.exception.InvalidCredentialsException;
 import com.squad6.deneasybot.exception.UserNotFoundInErpException;
-import com.squad6.deneasybot.model.Context;
-import com.squad6.deneasybot.model.OmieUserDTO;
-import com.squad6.deneasybot.model.User;
-import com.squad6.deneasybot.model.UserDTO;
-import com.squad6.deneasybot.model.VerifyEmailCodeRequestDTO;
-import com.squad6.deneasybot.model.VerifyEmailCodeResponseDTO;
-import com.squad6.deneasybot.model.VerifyEmailRequestDTO;
-import com.squad6.deneasybot.model.VerifyEmailResponseDTO;
+import com.squad6.deneasybot.model.*;
 import com.squad6.deneasybot.repository.UserRepository;
 import com.squad6.deneasybot.util.JwtUtil;
 
@@ -74,7 +67,7 @@ public class AuthService {
     }
 
     public VerifyEmailResponseDTO validateUserInErp(VerifyEmailRequestDTO requestDTO) {
-        OmieUserDTO erpUser = omieErpClient
+        OmieDTO.OmieUserDTO erpUser = omieErpClient
                 .findUserByEmail(requestDTO.appKey(), requestDTO.appSecret(), requestDTO.email())
                 .orElseThrow(() -> new UserNotFoundInErpException(
                         "Usuário com o e-mail '" + requestDTO.email() + "' não foi encontrado no ERP."));
