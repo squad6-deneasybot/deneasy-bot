@@ -22,7 +22,7 @@ public class OmieErpClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${omie.api.url}")
+    @Value("${omie.api.url-user}")
     private String omieApiUrl;
 
     public OmieErpClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
