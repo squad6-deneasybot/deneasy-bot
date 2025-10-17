@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.squad6.deneasybot.client.OmieErpClient;
 import com.squad6.deneasybot.exception.InvalidCredentialsException;
+import com.squad6.deneasybot.exception.InvalidKeysInErpException;
 import com.squad6.deneasybot.exception.UserNotFoundInErpException;
 import com.squad6.deneasybot.model.*;
 import com.squad6.deneasybot.repository.UserRepository;
@@ -78,5 +79,10 @@ public class AuthService {
         userDTO.setPhone(erpUser.celular());
 
         return new VerifyEmailResponseDTO(userDTO, Context.REGISTRATION);
+    }
+
+    public CompanyDTO validateCompany(String appKey, String appSecret) {
+        return omieErpClient.findCompanyByKeys(appKey, appSecret)
+                .orElseThrow(() -> new InvalidKeysInErpException("As credenciais (appKey/appSecret) são inválidas ou não foram encontradas no ERP."));
     }
 }

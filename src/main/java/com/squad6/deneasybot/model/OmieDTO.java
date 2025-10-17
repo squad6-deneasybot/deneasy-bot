@@ -39,4 +39,21 @@ public final class OmieDTO {
     public record UsersErrorResponse(
             String faultstring
     ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record VerifyCompanyRequestDTO(String appKey, String appSecret) {}
+
+    public record CompanyRequest(
+            String call,
+            @JsonProperty("app_key") String appKey,
+            @JsonProperty("app_secret") String appSecret,
+            List<CompanyRequestParam> param) {}
+
+    public record CompanyRequestParam(int pagina) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CompanyResponse(@JsonProperty("empresas_cadastro") List<CompanyDetails> empresasCadastro) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CompanyDetails(@JsonProperty("razao_social") String razaoSocial) {}
 }

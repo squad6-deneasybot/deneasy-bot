@@ -1,11 +1,13 @@
 package com.squad6.deneasybot.client;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
@@ -13,7 +15,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.squad6.deneasybot.model.OmieDTO;
+import com.squad6.deneasybot.model.*;
 
 @Component
 public class OmieErpClient {
@@ -22,8 +24,11 @@ public class OmieErpClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${omie.api.url-user}")
-    private String omieApiUrl;
+    @Value("${omie.api.users.url}")
+    private String omieUsersApiUrl;
+
+    @Value("${omie.api.companies.url}")
+    private String omieCompaniesApiUrl;
 
     public OmieErpClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
@@ -35,7 +40,7 @@ public class OmieErpClient {
         var requestBody = new OmieDTO.UserRequest("ListarUsuarios", appKey, appSecret, List.of(param));
 
         try {
-            OmieDTO.UserResponse response = restTemplate.postForObject(omieApiUrl, requestBody, OmieDTO.UserResponse.class);
+            OmieDTO.UserResponse response = restTemplate.postForObject(omieUsersApiUrl, requestBody, OmieDTO.UserResponse.class);
 
             if (response != null && response.totalDeRegistros() > 0 && response.cadastros() != null
                     && !response.cadastros().isEmpty()) {
@@ -66,6 +71,52 @@ public class OmieErpClient {
 
         } catch (RestClientException e) {
             logger.error("Erro de comunicação ao chamar a API Omie: {}", e.getMessage());
+            throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
+        }
+    }
+
+    public Optional<CompanyDTO> findCompanyByKeys(String appKey, String appSecret) {
+        var param = new OmieDTO.CompanyRequestParam(1);
+        var requestBody = new OmieDTO.CompanyRequest("ListarEmpresas", appKey, appSecret, List.of(param));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+
+
+        HttpEntity<OmieDTO.CompanyRequest> entity = new HttpEntity<>(requestBody, headers);
+
+        try {
+            ResponseEntity<OmieDTO.CompanyResponse> responseEntity = restTemplate.exchange(
+                    omieCompaniesApiUrl,
+                    HttpMethod.POST,
+                    entity,
+                    OmieDTO.CompanyResponse.class
+            );
+
+            OmieDTO.CompanyResponse response = responseEntity.getBody();
+
+            if (response != null && response.empresasCadastro() != null && !response.empresasCadastro().isEmpty()) {
+                OmieDTO.CompanyDetails companyDetails = response.empresasCadastro().getFirst();
+                CompanyDTO companyDTO = new CompanyDTO();
+                companyDTO.setCompanyName(companyDetails.razaoSocial());
+                companyDTO.setAppKey(appKey);
+                companyDTO.setAppSecret(appSecret);
+                return Optional.of(companyDTO);
+            }
+
+            return Optional.empty();
+
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.FORBIDDEN) {
+                logger.warn("A API da Omie retornou 403 Forbidden, indicando chaves inválidas.");
+                return Optional.empty();
+            } else {
+                logger.error("Erro inesperado ao chamar a API Omie (ListarEmpresas): Status {}, Body {}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new RuntimeException("Falha na validação com o ERP.", e);
+            }
+        } catch (RestClientException e) {
+            logger.error("Erro de comunicação ao chamar a API Omie (ListarEmpresas): {}", e.getMessage());
             throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
         }
     }
