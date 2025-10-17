@@ -17,4 +17,7 @@ jwt:
 
 omie:
   api:
-   url-user: https://app.omie.com.br/api/v1/crm/usuarios/
+   users:
+     url: https://app.omie.com.br/api/v1/crm/usuarios/
+   companies:
+     url: https://app.omie.com.br/api/v1/geral/empresas/
