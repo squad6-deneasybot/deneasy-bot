@@ -16,11 +16,13 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final OmieErpClient omieErpClient;
+    private final EmailService emailService;
 
-    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient) {
+    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient, EmailService emailService) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.omieErpClient = omieErpClient;
+        this.emailService = emailService;
     }
 
     public void logout(String token) {
