@@ -23,6 +23,12 @@ public class AuthController {
         return ResponseEntity.ok("Logout realizado com sucesso.");
     }
 
+    @PostMapping("/request-email-code")
+    public ResponseEntity<SendEmailCodeResponseDTO> requestEmailCode(@RequestBody SendEmailCodeRequestDTO request) {
+        SendEmailCodeResponseDTO response = authService.requestEmailCode(request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/verify-email-code")
     public ResponseEntity<VerifyEmailCodeResponseDTO> verifyEmailCode(@RequestHeader("X-Code") String inputCode,
             @RequestBody VerifyEmailCodeRequestDTO dto) {
