@@ -71,12 +71,13 @@ public class EmailService {
 
     private String buildHtmlEmailTemplate(String userName, String code) {
         String safeUserName = HtmlUtils.htmlEscape(userName);
+        String safeCode =  HtmlUtils.htmlEscape(code);
 
         return "<div style='font-family: Arial, sans-serif; line-height: 1.6;'>"
                 + "  <h2>Olá, " + safeUserName + "!</h2>"
                 + "  <p>Use o código abaixo para verificar seu e-mail:</p>"
                 + "  <div style='background-color: #f4f4f4; padding: 10px 20px; border-radius: 5px; text-align: center;'>"
-                + "    <h1 style='color: #333; letter-spacing: 3px; margin: 10px 0;'>" + code + "</h1>"
+                + "    <h1 style='color: #333; letter-spacing: 3px; margin: 10px 0;'>" + safeCode + "</h1>"
                 + "  </div>"
                 + "  <p>Este código é válido por 15 minutos.</p>"
                 + "  <p>Equipe DeneasyBot</p>"
