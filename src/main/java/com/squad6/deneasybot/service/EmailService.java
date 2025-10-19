@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class EmailService {
@@ -46,8 +47,10 @@ public class EmailService {
     }
 
     private String buildHtmlEmailTemplate(String userName, String code) {
+        String safeUserName = HtmlUtils.htmlEscape(userName);
+
         return "<div style='font-family: Arial, sans-serif; line-height: 1.6;'>"
-                + "  <h2>Olá, " + userName + "!</h2>"
+                + "  <h2>Olá, " + safeUserName + "!</h2>"
                 + "  <p>Use o código abaixo para verificar seu e-mail:</p>"
                 + "  <div style='background-color: #f4f4f4; padding: 10px 20px; border-radius: 5px; text-align: center;'>"
                 + "    <h1 style='color: #333; letter-spacing: 3px; margin: 10px 0;'>" + code + "</h1>"
