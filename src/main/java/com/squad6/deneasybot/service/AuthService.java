@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.service;
 
+import com.squad6.deneasybot.exception.UserNotFoundByPhoneException;
 import com.squad6.deneasybot.util.CodeGeneratorUtil;
 import org.springframework.stereotype.Service;
 
@@ -34,6 +35,15 @@ public class AuthService {
 
         user.setSessionToken(null);
         userRepository.save(user);
+    }
+
+    public ValidatePhoneResponseDTO validatePhone(ValidatePhoneRequestDTO request) {
+        User user = userRepository.findByPhone(request.phone())
+                .orElseThrow(() -> new UserNotFoundByPhoneException(
+                        "Usuário com o telefone '" + request.phone() + "' não foi encontrado."
+                ));
+
+        return new ValidatePhoneResponseDTO(new UserDTO(user));
     }
 
     public SendEmailCodeResponseDTO requestEmailCode(SendEmailCodeRequestDTO request) {

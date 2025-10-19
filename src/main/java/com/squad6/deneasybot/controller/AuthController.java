@@ -23,6 +23,12 @@ public class AuthController {
         return ResponseEntity.ok("Logout realizado com sucesso.");
     }
 
+    @PostMapping("/validate-phone")
+    public ResponseEntity<ValidatePhoneResponseDTO> validatePhone(@RequestBody ValidatePhoneRequestDTO request) {
+        ValidatePhoneResponseDTO response = authService.validatePhone(request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/request-email-code")
     public ResponseEntity<SendEmailCodeResponseDTO> requestEmailCode(@RequestBody SendEmailCodeRequestDTO request) {
         SendEmailCodeResponseDTO response = authService.requestEmailCode(request);
