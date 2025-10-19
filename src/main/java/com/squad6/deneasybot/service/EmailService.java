@@ -1,6 +1,8 @@
 package com.squad6.deneasybot.service;
 
 import jakarta.mail.MessagingException;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +27,28 @@ public class EmailService {
     }
 
     public void sendCode(String toEmail, String userName, String code) {
+        if (toEmail == null || toEmail.trim().isEmpty()) {
+            logger.error("O e-mail de destino está vazio ou nulo.");
+            throw new IllegalArgumentException("O e-mail de destino não pode ser vazio ou nulo.");
+        }
+        try {
+            InternetAddress emailAddr = new InternetAddress(toEmail);
+            emailAddr.validate();
+        } catch (AddressException ex) {
+            logger.error("Formato de e-mail inválido: {}", toEmail);
+            throw new IllegalArgumentException("O e-mail de destino possui formato inválido.", ex);
+        }
+        if (userName == null || userName.trim().isEmpty()) {
+            logger.error("O nome de usuário está vazio ou nulo.");
+            throw new IllegalArgumentException("O nome de usuário não pode ser vazio ou nulo.");
+        }
+        if (code == null || code.trim().isEmpty()) {
+            logger.error("O código está vazio ou nulo.");
+            throw new IllegalArgumentException("O código não pode ser vazio ou nulo.");
+        }
+
         logger.info("Preparando para enviar código para {}", toEmail);
+
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
