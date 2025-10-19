@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.service;
 
+import com.squad6.deneasybot.util.CodeGeneratorUtil;
 import org.springframework.stereotype.Service;
 
 import com.squad6.deneasybot.client.OmieErpClient;
@@ -16,11 +17,15 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final OmieErpClient omieErpClient;
+    private final EmailService emailService;
+    private final CodeGeneratorUtil codeGeneratorUtil;
 
-    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient) {
+    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient, EmailService emailService, CodeGeneratorUtil codeGeneratorUtil) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.omieErpClient = omieErpClient;
+        this.emailService = emailService;
+        this.codeGeneratorUtil = codeGeneratorUtil;
     }
 
     public void logout(String token) {
@@ -29,6 +34,16 @@ public class AuthService {
 
         user.setSessionToken(null);
         userRepository.save(user);
+    }
+
+    public SendEmailCodeResponseDTO requestEmailCode(SendEmailCodeRequestDTO request) {
+        String code = codeGeneratorUtil.generateRandom6DigitCode();
+
+        String tokenHash = jwtUtil.generateVerificationToken(request.user().getEmail(), code);
+
+        emailService.sendCode(request.user().getEmail(), request.user().getName(), code);
+
+        return new SendEmailCodeResponseDTO(tokenHash);
     }
 
     public VerifyEmailCodeResponseDTO verifyEmailCode(String hash, String inputCode, VerifyEmailCodeRequestDTO dto) {
