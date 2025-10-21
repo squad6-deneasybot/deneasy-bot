@@ -72,7 +72,7 @@ public class WebhookOrchestratorService {
         } catch (Exception e) {
             logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
             whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
-            chatStateService.setState(userPhone, ChatState.START); // Reseta o estado
+            chatStateService.setState(userPhone, ChatState.START);
         }
     }
 
@@ -90,7 +90,7 @@ public class WebhookOrchestratorService {
                 logger.info("Token inválido para {}. Iniciando fluxo de login...", userPhone);
                 SendEmailCodeResponseDTO codeResponse = authService.requestEmailCode(new SendEmailCodeRequestDTO(user));
 
-                chatStateService.saveData(userPhone, "temp_token_hash", codeResponse.tokenHash());
+                chatStateService.saveData(userPhone, "temp_token_hash", codeResponse.hashToken());
                 chatStateService.saveData(userPhone, "temp_user_dto", user);
                 chatStateService.saveData(userPhone, "context", Context.LOGIN);
                 chatStateService.setState(userPhone, ChatState.AWAITING_EMAIL_CODE);
@@ -117,7 +117,7 @@ public class WebhookOrchestratorService {
         String appSecret = messageText.trim();
 
         try {
-            CompanyDTO companyDTO = companyService.validateCompanyInErp(appKey, appSecret);
+            CompanyDTO companyDTO = authService.validateCompany(appKey, appSecret);
 
             chatStateService.saveData(userPhone, "temp_company_dto", companyDTO);
             chatStateService.setState(userPhone, ChatState.AWAITING_EMAIL);
@@ -140,7 +140,7 @@ public class WebhookOrchestratorService {
 
             SendEmailCodeResponseDTO codeResponse = authService.requestEmailCode(new SendEmailCodeRequestDTO(erpUser));
 
-            chatStateService.saveData(userPhone, "temp_token_hash", codeResponse.tokenHash());
+            chatStateService.saveData(userPhone, "temp_token_hash", codeResponse.hashToken());
             chatStateService.saveData(userPhone, "temp_user_dto", erpUser);
             chatStateService.setState(userPhone, ChatState.AWAITING_EMAIL_CODE);
 
@@ -170,7 +170,7 @@ public class WebhookOrchestratorService {
                 Company savedCompany = companyService.createCompany(companyDTO);
 
                 verifiedUser.setCompanyId(savedCompany.getId());
-                verifiedUser.setProfile(UserProfile.GESTOR);
+                verifiedUser.setProfile(UserProfile.MANAGER);
                 userService.createUser(verifiedUser);
             }
 

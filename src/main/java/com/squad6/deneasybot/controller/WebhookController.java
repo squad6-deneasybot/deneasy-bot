@@ -41,7 +41,7 @@ public class WebhookController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> handleMessage(@RequestBody WhatsappMessageRequest request){
+    public ResponseEntity<Void> handleMessage(@RequestBody WhatsappMessageRequest request) {
         try {
             WhatsappMessageRequest.Message message = request.entry().getFirst().changes().getFirst().value().messages().getFirst();
 
@@ -58,8 +58,7 @@ public class WebhookController {
 
         } catch (Exception e) {
             logger.warn("Payload do webhook recebido não é uma mensagem de usuário padrão (ex: status). Ignorando.");
-
-            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.ok().build();
     }
-
 }
