@@ -20,6 +20,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(UserNotFoundByPhoneException.class)
+    public ResponseEntity<Object> handleUserNotFoundByPhoneException(UserNotFoundByPhoneException ex) {
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.NOT_FOUND.value(),
+                "error", "User not found",
+                "message", ex.getMessage()
+        );
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(UserNotFoundInErpException.class)
     public ResponseEntity<Object> handleUserNotFoundInErpException(UserNotFoundInErpException ex) {
         Map<String, Object> body = Map.of(
