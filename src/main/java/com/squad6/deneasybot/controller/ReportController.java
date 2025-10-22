@@ -17,7 +17,7 @@ public class ReportController {
     public ReportController(ReportService reportService) {
         this.reportService = reportService;
     }
-    
+
     @GetMapping("/simple")
     public ResponseEntity<ReportSimpleDTO> getSimpleReport(@RequestParam(defaultValue = "1") Long companyId) {
         ReportSimpleDTO report = reportService.getSimpleReport(companyId);
