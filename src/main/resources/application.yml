@@ -36,3 +36,9 @@ omie:
      url: https://app.omie.com.br/api/v1/crm/usuarios/
    companies:
      url: https://app.omie.com.br/api/v1/geral/empresas/
+
+whatsapp:
+  verify-token: ${WHATSAPP_VERIFY_TOKEN}
+  api:
+    url: ${WHATSAPP_API_URL}
+    token: ${WHATSAPP_API_TOKEN}
