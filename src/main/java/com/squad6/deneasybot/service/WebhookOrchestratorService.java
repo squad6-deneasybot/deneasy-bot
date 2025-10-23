@@ -113,7 +113,8 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingAppSecret(String userPhone, String messageText) {
-        String appKey = chatStateService.getData(userPhone, "temp_app_key", String.class).orElseThrow();
+        String appKey = chatStateService.getData(userPhone, "temp_app_key", String.class)
+                .orElseThrow(() -> new java.util.NoSuchElementException("App Key missing for user " + userPhone + " in registration flow"));
         String appSecret = messageText.trim();
 
         try {
