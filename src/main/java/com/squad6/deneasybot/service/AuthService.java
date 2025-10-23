@@ -101,7 +101,21 @@ public class AuthService {
         UserDTO userDTO = new UserDTO();
         userDTO.setName(erpUser.nome());
         userDTO.setEmail(erpUser.email());
-        userDTO.setPhone(erpUser.celular());
+
+        String rawPhoneFromErp = erpUser.celular();
+
+        String normalizedPhone = null;
+        if (rawPhoneFromErp != null && !rawPhoneFromErp.isBlank()) {
+            normalizedPhone = rawPhoneFromErp.replaceAll("[^\\d]", "");
+        }
+
+        if (normalizedPhone != null && normalizedPhone.length() >= 10 && !normalizedPhone.startsWith("55")) {
+            if (normalizedPhone.length() == 10 || normalizedPhone.length() == 11) {
+                normalizedPhone = "55" + normalizedPhone;
+            }
+        }
+
+        userDTO.setPhone(normalizedPhone);
 
         return new VerifyEmailResponseDTO(userDTO, Context.REGISTRATION);
     }
