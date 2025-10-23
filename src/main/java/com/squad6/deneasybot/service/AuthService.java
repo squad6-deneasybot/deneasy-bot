@@ -109,10 +109,8 @@ public class AuthService {
             normalizedPhone = rawPhoneFromErp.replaceAll("[^\\d]", "");
         }
 
-        if (normalizedPhone != null && normalizedPhone.length() >= 10 && !normalizedPhone.startsWith("55")) {
-            if (normalizedPhone.length() == 10 || normalizedPhone.length() == 11) {
-                normalizedPhone = "55" + normalizedPhone;
-            }
+        if (normalizedPhone != null && (normalizedPhone.length() == 10 || normalizedPhone.length() == 11) && !normalizedPhone.startsWith("55")) {
+            normalizedPhone = "55" + normalizedPhone;
         }
 
         userDTO.setPhone(normalizedPhone);
