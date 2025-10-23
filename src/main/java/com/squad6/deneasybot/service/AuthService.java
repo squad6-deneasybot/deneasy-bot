@@ -72,20 +72,20 @@ public class AuthService {
         Context context = dto.context();
 
         switch (context) {
-        case REGISTRATION -> {
-            userDTO.setSessionToken(sessionToken);
-            return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
-        }
+            case REGISTRATION -> {
+                userDTO.setSessionToken(sessionToken);
+                return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
+            }
 
-        case LOGIN -> {
-            User user = userRepository.findByEmail(userDTO.getEmail())
-                    .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+            case LOGIN -> {
+                User user = userRepository.findByEmail(userDTO.getEmail())
+                        .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-            user.setSessionToken(sessionToken);
-            userRepository.save(user);
+                user.setSessionToken(sessionToken);
+                userRepository.save(user);
 
-            userDTO.setSessionToken(sessionToken);
-            return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
+                userDTO.setSessionToken(sessionToken);
+                return new VerifyEmailCodeResponseDTO(userDTO, sessionToken);
         }
 
         default -> throw new RuntimeException("Contexto inválido.");

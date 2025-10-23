@@ -39,3 +39,6 @@ omie:
 
 whatsapp:
   verify-token: ${WHATSAPP_VERIFY_TOKEN}
+  api:
+    url: ${WHATSAPP_API_URL}
+    token: ${WHATSAPP_API_TOKEN}
