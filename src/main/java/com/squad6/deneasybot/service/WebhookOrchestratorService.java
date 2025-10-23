@@ -132,7 +132,9 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingEmail(String userPhone, String messageText) {
-        CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class).orElseThrow();
+        CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class)
+            .orElseThrow(() -> new java.util.NoSuchElementException(
+                "Company data (temp_company_dto) missing for userPhone: " + userPhone));
         String email = messageText.trim();
 
         try {
