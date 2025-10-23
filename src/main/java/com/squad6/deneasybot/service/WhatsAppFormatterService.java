@@ -14,7 +14,7 @@ public class WhatsAppFormatterService {
         StringBuilder sb = new StringBuilder();
 
         sb.append("📊 *").append(dto.reportType()).append("*\n");
-        sb.append("🗓️ *Período:* ").append(dto.datas()).append("\n\n");
+        sb.append("🗓️ *Período:* ").append(dto.dates()).append("\n\n");
 
         sb.append("💰 *Receita Operacional:* ").append(formatCurrency(dto.operatingRevenue())).append("\n");
         sb.append("💸 *Custos Variáveis:* ").append(formatCurrency(dto.variableCosts())).append("\n");

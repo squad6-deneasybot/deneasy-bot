@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public record ReportSimpleDTO(
         String reportType,
-        String datas,
+        String dates,
         BigDecimal operatingRevenue,
         BigDecimal variableCosts,
         BigDecimal fixedExpenses,
