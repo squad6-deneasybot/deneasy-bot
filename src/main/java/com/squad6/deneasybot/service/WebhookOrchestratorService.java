@@ -159,11 +159,11 @@ public class WebhookOrchestratorService {
         String inputCode = messageText.trim();
         String hash = chatStateService.getData(userPhone, "temp_token_hash", String.class)
                 .orElseThrow(() -> new java.util.NoSuchElementException(
-                        "Token hash (temp_token_hash) missing for userPhone: " + userPhone)); // <-- Add descriptive message
+                        "Token hash (temp_token_hash) missing for userPhone: " + userPhone));
 
         UserDTO userDTO = chatStateService.getData(userPhone, "temp_user_dto", UserDTO.class)
                 .orElseThrow(() -> new java.util.NoSuchElementException(
-                        "User DTO (temp_user_dto) missing for userPhone: " + userPhone)); // <-- Add descriptive message
+                        "User DTO (temp_user_dto) missing for userPhone: " + userPhone));
         Context context = chatStateService.getData(userPhone, "context", Context.class).orElse(Context.REGISTRATION);
 
         try {
