@@ -29,13 +29,13 @@ public class WebhookController {
             @RequestParam("hub.verify_token") String token
     ) {
        logger.info("Webhook GET de verificação recebido");
-       logger.debug("Mode: {}, Token: {}, Challenge{}", mode, token, challenge);
+       logger.debug("Mode: {}, Token: {}, Challenge: {}", mode, token, challenge);
 
        if ("subscribe".equals(mode) && verifyToken.equals(token)) {
            logger.info("Verificação do Webhook bem sucedida. Retornando Challenge.");
            return ResponseEntity.ok(challenge);
        } else {
-           logger.warn("Falha na verificação do Webhook. Tokens não batem ou modo invalido");
+           logger.warn("Falha na verificação do Webhook. Tokens não batem ou modo inválido");
            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
        }
     }

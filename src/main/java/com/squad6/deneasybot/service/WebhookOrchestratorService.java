@@ -113,7 +113,8 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingAppSecret(String userPhone, String messageText) {
-        String appKey = chatStateService.getData(userPhone, "temp_app_key", String.class).orElseThrow();
+        String appKey = chatStateService.getData(userPhone, "temp_app_key", String.class)
+                .orElseThrow(() -> new java.util.NoSuchElementException("App Key missing for user " + userPhone + " in registration flow"));
         String appSecret = messageText.trim();
 
         try {
@@ -131,7 +132,9 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingEmail(String userPhone, String messageText) {
-        CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class).orElseThrow();
+        CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class)
+            .orElseThrow(() -> new java.util.NoSuchElementException(
+                "Company data (temp_company_dto) missing for userPhone: " + userPhone));
         String email = messageText.trim();
 
         try {

@@ -39,8 +39,9 @@ public class WhatsAppService {
         HttpEntity<WhatsAppSendRequest> entity = new HttpEntity<>(payload, headers);
 
         try {
-            restTemplate.postForObject(apiUrl, entity, String.class);
+            String response = restTemplate.postForObject(apiUrl, entity, String.class);
             logger.info("Mensagem enviada com sucesso para {}", to);
+            logger.debug("Resposta da API WhatsApp: {}", response);
         } catch (RestClientException e) {
             logger.error("Falha ao enviar mensagem para {}. Erro: {}", to, e.getMessage());
         }
