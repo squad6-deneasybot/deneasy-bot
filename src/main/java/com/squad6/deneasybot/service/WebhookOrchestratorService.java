@@ -173,7 +173,9 @@ public class WebhookOrchestratorService {
             UserDTO verifiedUser = response.user();
 
             if (context == Context.REGISTRATION) {
-                CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class).orElseThrow();
+                CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class)
+                        .orElseThrow(() -> new java.util.NoSuchElementException(
+                                "Company DTO (temp_company_dto) missing for userPhone: " + userPhone));
 
                 Company savedCompany = companyService.createCompany(companyDTO);
 
