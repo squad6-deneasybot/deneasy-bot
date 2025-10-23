@@ -35,7 +35,7 @@ public class WebhookController {
            logger.info("Verificação do Webhook bem sucedida. Retornando Challenge.");
            return ResponseEntity.ok(challenge);
        } else {
-           logger.warn("Falha na verificação do Webhook. Tokens não batem ou modo invalido");
+           logger.warn("Falha na verificação do Webhook. Tokens não batem ou modo inválido");
            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
        }
     }
