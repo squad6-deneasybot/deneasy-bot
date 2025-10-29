@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import com.squad6.deneasybot.repository.UserRepository;
 
 @Service
 public class WebhookOrchestratorService {
@@ -15,28 +16,28 @@ public class WebhookOrchestratorService {
     private final AuthService authService;
     private final CompanyService companyService;
     private final UserService userService;
-    private final ReportService reportService;
     private final MenuService menuService;
 
     private final ChatStateService chatStateService;
     private final JwtUtil jwtUtil;
     private final WhatsAppService whatsAppService;
     private final WhatsAppFormatterService formatterService;
+    private final UserRepository userRepository;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
-                                      UserService userService, ReportService reportService,
+                                      UserService userService,
                                       MenuService menuService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
-                                      WhatsAppFormatterService formatterService) {
+                                      WhatsAppFormatterService formatterService, UserRepository userRepository) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
-        this.reportService = reportService;
         this.menuService = menuService;
         this.chatStateService = chatStateService;
         this.jwtUtil = jwtUtil;
         this.whatsAppService = whatsAppService;
         this.formatterService = formatterService;
+        this.userRepository = userRepository;
     }
 
     @Async
@@ -68,11 +69,21 @@ public class WebhookOrchestratorService {
                 case AUTHENTICATED:
                     handleStateAuthenticated(userPhone, messageText);
                     break;
+
+                case AWAITING_POST_ACTION:
+                    handleStateAwaitingPostAction(userPhone, messageText);
+                    break;
             }
         } catch (Exception e) {
             logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
-            whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
-            chatStateService.setState(userPhone, ChatState.START);
+            if (currentState == ChatState.AUTHENTICATED) {
+                UserProfile profile = getUserProfile(userPhone);
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+            } else {
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
+                chatStateService.setState(userPhone, ChatState.START);
+            }
         }
     }
 
@@ -197,8 +208,61 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAuthenticated(String userPhone, String messageText) {
-        String response = menuService.processMessage(userPhone, messageText);
-        whatsAppService.sendMessage(userPhone, response);
-    }
+        try {
+            String actionResponse = menuService.processMenuOption(userPhone, messageText);
+            if (actionResponse.startsWith("[Finalizando]")) {
+                String finalMessage = actionResponse.substring(13);
+                whatsAppService.sendMessage(userPhone, finalMessage);
+                return;
+            }
+            whatsAppService.sendMessage(userPhone, actionResponse);
+            chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+            String postActionMenu = formatterService.formatPostActionMenu();
+            whatsAppService.sendMessage(userPhone, postActionMenu);
+        } catch (IllegalArgumentException e) {
+            logger.warn("Opção inválida '{}' para usuário {}", messageText, userPhone);
+            UserProfile profile = getUserProfile(userPhone);
+            whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
+        } catch (Exception e) {
+            logger.error("Erro ao processar opção de menu para {}: {}", userPhone, e.getMessage(), e);
+            UserProfile profile = getUserProfile(userPhone);
+            whatsAppService.sendMessage(userPhone, "Ocorreu um erro ao processar sua solicitação. Tente novamente.\n\n" + formatterService.formatMenu(profile));
+        }
+        }
 
+
+    private void handleStateAwaitingPostAction(String userPhone, String messageText) {
+        UserProfile profile = getUserProfile(userPhone);
+
+        switch (messageText.trim()) {
+            case "1":
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                String menu = formatterService.formatMenu(profile);
+                whatsAppService.sendMessage(userPhone, menu);
+                break;
+
+            case "2":
+                chatStateService.clearAll(userPhone);
+                String humanContactMessage = "Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número: \n\n" +
+                        "*+55 79 99999-9999*\n\n" +
+                        "Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋";
+                whatsAppService.sendMessage(userPhone, humanContactMessage);
+                break;
+
+            case "3":
+                chatStateService.clearAll(userPhone);
+                whatsAppService.sendMessage(userPhone, "Atendimento encerrado. Obrigado por usar o DeneasyBot! 👋");
+                break;
+
+            default:
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
+                whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
+                break;
+        }
+    }
+    private UserProfile getUserProfile(String userPhone) {
+        return userRepository.findByPhone(userPhone)
+                .map(User::getProfile)
+                .orElse(UserProfile.EMPLOYEE);
+    }
 }

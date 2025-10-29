@@ -7,4 +7,5 @@ public enum ChatState {
     AWAITING_EMAIL,
     AWAITING_EMAIL_CODE,
     AUTHENTICATED,
+    AWAITING_POST_ACTION
 }
