@@ -263,6 +263,6 @@ public class WebhookOrchestratorService {
     private UserProfile getUserProfile(String userPhone) {
         return userRepository.findByPhone(userPhone)
                 .map(User::getProfile)
-                .orElse(UserProfile.MANAGER);
+                .orElse(UserProfile.EMPLOYEE);
     }
 }
