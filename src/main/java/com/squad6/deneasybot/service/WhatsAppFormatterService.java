@@ -46,4 +46,11 @@ public class WhatsAppFormatterService {
     public String formatUserCreated(UserDTO newUser) {
         return "✅ Usuário *" + newUser.getName() + "* foi criado com sucesso!";
     }
+
+    public String formatPostActionMenu() {
+        return "O que você gostaria de fazer agora?\n\n" +
+                "1️⃣ Voltar ao Menu Principal\n" +
+                "2️⃣ Falar com um Atendente\n" +
+                "3️⃣ Encerrar Atendimento";
+    }
 }
