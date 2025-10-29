@@ -62,7 +62,7 @@ public class MenuService {
             case "4":
                 if (profile == UserProfile.MANAGER) {
 
-                    return "STUB: Gerenciar funcionario (função disponível apenas para manager)";
+                    return "STUB: Gerenciar funcionário (função disponível apenas para manager)";
                 } else {
 
                     throw new IllegalArgumentException("Opção '4' inválida para o perfil EMPLOYEE.");
