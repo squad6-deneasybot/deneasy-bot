@@ -51,7 +51,7 @@ public class MenuService {
                 return whatsAppFormatterService.formatSimpleReport(report);
 
             case "2":
-                return "STUB: Logica das perguntas frequentes.";
+                return "STUB: Lógica das perguntas frequentes.";
 
             case "3":
                 chatStateService.clearAll(userPhone);
