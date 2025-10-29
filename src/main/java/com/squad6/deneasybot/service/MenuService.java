@@ -5,7 +5,6 @@ import com.squad6.deneasybot.model.User;
 import com.squad6.deneasybot.model.UserProfile;
 import com.squad6.deneasybot.repository.UserRepository;
 import com.squad6.deneasybot.service.ChatStateService;
-import com.squad6.deneasybot.service.WhatsAppService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -19,16 +18,14 @@ public class MenuService {
     private final WhatsAppFormatterService whatsAppFormatterService;
     private final UserRepository userRepository;
     private final ChatStateService chatStateService;
-    private final WhatsAppService whatsAppService;
 
     public MenuService(ReportService reportService,
                        WhatsAppFormatterService whatsAppFormatterService,
-                       UserRepository userRepository, ChatStateService chatStateService, WhatsAppService whatsAppService) {
+                       UserRepository userRepository, ChatStateService chatStateService) {
         this.reportService = reportService;
         this.whatsAppFormatterService = whatsAppFormatterService;
         this.userRepository = userRepository;
         this.chatStateService = chatStateService;
-        this.whatsAppService = whatsAppService;
     }
 
     public String processMenuOption(String userPhone, String messageText) throws IllegalArgumentException {
