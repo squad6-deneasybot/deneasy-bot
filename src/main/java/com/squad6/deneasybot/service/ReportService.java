@@ -10,7 +10,7 @@ import java.time.LocalDate;
 public class ReportService {
 
     public ReportSimpleDTO getSimpleReport(Long companyId) {
-        String reportType = "Relatório Simples";
+        String reportType = "Simples";
         String companyName = "Empresa";
         LocalDate startDate = LocalDate.of(2025, 10, 1);
         LocalDate endDate = LocalDate.of(2025, 10, 21);
