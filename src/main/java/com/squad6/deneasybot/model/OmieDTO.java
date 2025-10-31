@@ -3,6 +3,7 @@ package com.squad6.deneasybot.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 public final class OmieDTO {
@@ -56,4 +57,42 @@ public final class OmieDTO {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record CompanyDetails(@JsonProperty("razao_social") String razaoSocial) {}
+
+    public record MovementParam(
+            @JsonProperty("nPagina") int nPagina,
+            @JsonProperty("nRegPorPagina") int nRegPorPagina,
+            @JsonProperty("dDtDe") String dDtDe,
+            @JsonProperty("dDtAte") String dDtAte
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record MovementResponse(
+            @JsonProperty("nPagina") int nPagina,
+            @JsonProperty("nTotPaginas") int nTotPaginas,
+            @JsonProperty("nTotRegistros") int nTotRegistros,
+            @JsonProperty("movimento") List<MovimentoDetalhe> movimento
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record MovimentoDetalhe(
+            @JsonProperty("detalhes") Detalhe detalhes,
+            @JsonProperty("resumo") Resumo resumo
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Detalhe(
+            @JsonProperty("dDtInc") String dDtInc, // Data de Inclusão
+            @JsonProperty("dDtComp") String dDtComp, // Data de Competência
+            @JsonProperty("dDtVenc") String dDtVenc, // Data de Vencimento
+            @JsonProperty("cDesc") String cDesc, // Descrição
+            @JsonProperty("cCodCateg") String cCodCateg // Código da Categoria
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record Resumo(
+            @JsonProperty("nValor") BigDecimal nValor, // Valor do Movimento
+            @JsonProperty("nValPago") BigDecimal nValPago, // Valor Pago
+            @JsonProperty("nValJuros") BigDecimal nValJuros, // Valor Juros
+            @JsonProperty("nValDesc") BigDecimal nValDesc // Valor Desconto
+    ) {}
 }
