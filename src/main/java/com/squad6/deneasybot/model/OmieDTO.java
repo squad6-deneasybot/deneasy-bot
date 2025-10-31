@@ -65,6 +65,13 @@ public final class OmieDTO {
             @JsonProperty("dDtAte") String dDtAte
     ) {}
 
+    public record MovementRequest(
+            String call,
+            @JsonProperty("app_key") String appKey,
+            @JsonProperty("app_secret") String appSecret,
+            List<MovementParam> param
+    ) {}
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MovementResponse(
             @JsonProperty("nPagina") int nPagina,
