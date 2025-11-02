@@ -1,40 +1,40 @@
 package com.squad6.deneasybot.service;
 
+import com.squad6.deneasybot.model.Company;
 import com.squad6.deneasybot.model.ReportSimpleDTO;
+import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
+import com.squad6.deneasybot.repository.CompanyRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class FinancialAggregatorService {
 
-    private static final String STATUS_PAGO = "PAGO";
-    private static final String STATUS_RECEBIDO = "RECEBIDO";
+    private static final Logger logger = LoggerFactory.getLogger(FinancialAggregatorService.class);
     private static final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
     private static final String GRUPO_CONTA_A_RECEBER = "CONTA_A_RECEBER";
 
     private final MovementFetcherService movementFetcherService;
     private final CategoryCacheService categoryCacheService;
+    private final CompanyRepository companyRepository;
 
     @Autowired
-    public FinancialAggregatorService(MovementFetcherService movementFetcherService, CategoryCacheService categoryCacheService) {
+    public FinancialAggregatorService(MovementFetcherService movementFetcherService,
+                                      CategoryCacheService categoryCacheService,
+                                      CompanyRepository companyRepository) {
         this.movementFetcherService = movementFetcherService;
         this.categoryCacheService = categoryCacheService;
+        this.companyRepository = companyRepository;
     }
 
-    /**
-     * Calcula os totais do relatório agregando movimentos financeiros.
-     *
-     * @param appKey A chave da aplicação.
-     * @param appSecret O segredo da aplicação.
-     * @param period O período para agregação ("weekly" ou "monthly").
-     * @return O ReportSimpleDTO completo com os totais calculados.
-     */
     public ReportSimpleDTO aggregateReportData(String appKey, String appSecret, String period) {
-        // Define startDate e endDate com base no period (Critério: Define startDate e endDate)
         LocalDate endDate = LocalDate.now();
         LocalDate startDate;
 
@@ -49,70 +49,86 @@ public class FinancialAggregatorService {
                 throw new IllegalArgumentException("Período inválido: " + period + ". Use 'weekly' ou 'monthly'.");
         }
 
-        // Chama movementFetcher.fetchAllMovementsForPeriod(...) (Critério: Chama movementFetcher...)
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate, endDate);
 
-        // Inicializa os acumuladores (Critério: Inicializa os acumuladores)
         BigDecimal receitaOp = BigDecimal.ZERO;
         BigDecimal custosVar = BigDecimal.ZERO;
         BigDecimal despesasFixas = BigDecimal.ZERO;
 
-        // Itera (for) sobre a lista de movimentos (Critério: Lógica de Agregação - Iteração)
+        logger.info("Iniciando agregação de {} movimentos...", movements.size());
+
         for (MovementDetail movement : movements) {
 
-            // CORREÇÃO: Status e Grupo estão em MovementHeader, acessado via movement.header()
-            String status = movement.header().cStatus(); //
-            String group = movement.header().cGrupo();   //
-            BigDecimal valor;
-
-            // Filtro de Status (Critério: Ignorar movimentos que não foram pagos/recebidos)
-            // CORREÇÃO: Valores (nValRecebido e nValPago) são BigDecimal em MovementSummary, acessado via movement.summary()
-            if (GRUPO_CONTA_A_RECEBER.equals(group) && STATUS_RECEBIDO.equals(status)) {
-                valor = movement.summary().nValRecebido(); //
-            } else if (GRUPO_CONTA_A_PAGAR.equals(group) && STATUS_PAGO.equals(status)) {
-                // Para despesas, o valor deve ser positivo para o cálculo,
-                // pois o agrupamento (custosVar, despesasFixas) será subtraído depois.
-                valor = movement.summary().nValPago(); //
-            } else {
-                // Ignora movimentos não liquidados ou de outros tipos que não serão agregados
+            OmieDTO.MovementHeader header = movement.header();
+            if (header == null) {
+                logger.warn("Movimento com header nulo. Pulando.");
                 continue;
             }
 
-            // Pega o cCodCateg (Critério: Obter Categoria Raiz)
-            // CORREÇÃO: cCodCateg está em MovementHeader, acessado via movement.header()
-            String cCodCateg = movement.header().cCodCateg(); //
+            String group = header.cGrupo();
 
-            // Chama categoryCache.getRootCategory(...)
+            BigDecimal valor = header.nValorTitulo();
+
+            if (valor == null) {
+                continue;
+            }
+
+            String cCodCateg = header.cCodCateg();
+            if (cCodCateg == null) {
+                continue;
+            }
+
+
             String rootCategory = categoryCacheService.getRootCategory(appKey, appSecret, cCodCateg);
 
-            // Lógica switch (O Cálculo) (Critério: Lógica switch)
-            switch (rootCategory) {
-                case "1.0": // Receita Operacional
+            if (rootCategory == null) {
+                logger.warn("Não foi possível mapear a categoria raiz para o código: {}. Pulando.", cCodCateg);
+                continue;
+            }
+
+
+            if (GRUPO_CONTA_A_RECEBER.equals(group)) {
+                if ("1.0".equals(rootCategory)) {
                     receitaOp = receitaOp.add(valor);
-                    break;
-                case "2.1": // Custos Variáveis
-                    custosVar = custosVar.add(valor);
-                    break;
-                case "3.0": // Despesas Fixas (Incluindo 3.1, 3.2, etc.)
-                case "3.1":
-                case "3.2":
-                    despesasFixas = despesasFixas.add(valor);
-                    break;
-                // default: ignorar outras categorias (Critério: default: ignorar outras categorias)
-                default:
-                    break;
+                }
+            } else if (GRUPO_CONTA_A_PAGAR.equals(group)) {
+                switch (rootCategory) {
+                    case "2.1":
+                        custosVar = custosVar.add(valor);
+                        break;
+                    case "3.0":
+                    case "3.1":
+                    case "3.2":
+                        despesasFixas = despesasFixas.add(valor);
+                        break;
+                    default:
+
+                        if (rootCategory.startsWith("2.") || rootCategory.startsWith("3.")) {
+                            despesasFixas = despesasFixas.add(valor);
+                        }
+                        break;
+                }
             }
         }
 
-        // Finalização (Critério: Após o loop, calcula o resultadoOp)
-        // Calcula o Resultado Operacional: Receita Operacional - Custos Variáveis - Despesas Fixas
+        String companyName = "Empresa não encontrada";
+        try {
+
+            Optional<Company> companyOptional = companyRepository.findByAppKey(appKey);
+            if (companyOptional.isPresent()) {
+                companyName = companyOptional.get().getName();
+            } else {
+                logger.warn("Nenhuma empresa encontrada no banco de dados local com a appKey: {}", appKey);
+            }
+        } catch (Exception e) {
+            logger.error("Erro ao buscar nome da empresa pelo appKey: {}", appKey, e);
+        }
+
         BigDecimal resultadoOp = receitaOp.subtract(custosVar).subtract(despesasFixas);
 
-        // Monta e retorna o ReportSimpleDTO completo (Critério: Monta e retorna o ReportSimpleDTO)
-        // CORREÇÃO: Ajuste na chamada do construtor de ReportSimpleDTO para incluir todos os 8 campos.
         return new ReportSimpleDTO(
-                period, // reportType (usando o período como tipo de relatório)
-                "Nome da Empresa Placeholder", // companyName (Placeholder)
+                period,
+                companyName,
                 startDate,
                 endDate,
                 receitaOp,

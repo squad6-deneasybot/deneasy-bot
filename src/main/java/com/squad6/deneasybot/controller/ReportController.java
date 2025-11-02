@@ -19,8 +19,12 @@ public class ReportController {
     }
 
     @GetMapping("/simple")
-    public ResponseEntity<ReportSimpleDTO> getSimpleReport(@RequestParam(defaultValue = "1") Long companyId) {
-        ReportSimpleDTO report = reportService.getSimpleReport(companyId);
+    public ResponseEntity<ReportSimpleDTO> generateSimpleReport(
+            @RequestParam String appKey,
+            @RequestParam String appSecret,
+            @RequestParam(defaultValue = "monthly") String period) {
+
+        ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, period);
         return ResponseEntity.ok(report);
     }
 }
