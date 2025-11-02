@@ -76,24 +76,24 @@ public final class OmieDTO {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MovementDetail(
-            @JsonProperty("detalhes") MovementHeader header, // Renomeado de "Detalhe"
-            @JsonProperty("resumo") MovementSummary summary     // Renomeado de "Resumo"
+            @JsonProperty("detalhes") MovementHeader header,
+            @JsonProperty("resumo") MovementSummary summary
     ) {}
 
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MovementHeader(
-            @JsonProperty("cCodCateg") String cCodCateg, // Código da Categoria
-            @JsonProperty("cStatus") String cStatus,     // Ex: "PAGO", "ATRASADO"
-            @JsonProperty("cGrupo") String cGrupo,       // Ex: "CONTA_A_PAGAR"
-            @JsonProperty("dDtPagamento") String dDtPagamento, // Data de Pagamento (para filtrar)
-            @JsonProperty("dDtVenc") String dDtVenc     // Data de Vencimento
+            @JsonProperty("cCodCateg") String cCodCateg,
+            @JsonProperty("cStatus") String cStatus,
+            @JsonProperty("cGrupo") String cGrupo,
+            @JsonProperty("dDtPagamento") String dDtPagamento,
+            @JsonProperty("dDtVenc") String dDtVenc
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record MovementSummary(
-            @JsonProperty("nValPago") BigDecimal nValPago,     // Valor Pago
-            @JsonProperty("nValRecebido") BigDecimal nValRecebido, // Valor Recebido (para receitas)
-            @JsonProperty("nValAberto") BigDecimal nValAberto    // Valor em Aberto
+            @JsonProperty("nValPago") BigDecimal nValPago,
+            @JsonProperty("nValRecebido") BigDecimal nValRecebido,
+            @JsonProperty("nValAberto") BigDecimal nValAberto
     ) {}
 }

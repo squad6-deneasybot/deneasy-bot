@@ -39,7 +39,7 @@ public class MovementFetcherService {
 
             var param = new OmieDTO.MovementFilterParam(
                     currentPage,
-                    OmieErpClient.MAX_REGISTROS_POR_PAGINA, // 1000
+                    OmieErpClient.MAX_REGISTROS_POR_PAGINA,
                     dDtVencDe,
                     dDtVencAte
             );
