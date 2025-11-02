@@ -71,7 +71,7 @@ public final class OmieDTO {
             @JsonProperty("nPagina") int nPagina,
             @JsonProperty("nTotPaginas") int nTotPaginas,
             @JsonProperty("nTotRegistros") int nTotRegistros,
-            @JsonProperty("movimentos") List<MovementDetail> movements // <-- Corrigido (nome JSON "movimentos")
+            @JsonProperty("movimentos") List<MovementDetail> movements
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
