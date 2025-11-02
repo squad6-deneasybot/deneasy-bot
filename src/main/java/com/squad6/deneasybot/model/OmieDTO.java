@@ -87,7 +87,8 @@ public final class OmieDTO {
             @JsonProperty("cStatus") String cStatus,
             @JsonProperty("cGrupo") String cGrupo,
             @JsonProperty("dDtPagamento") String dDtPagamento,
-            @JsonProperty("dDtVenc") String dDtVenc
+            @JsonProperty("dDtVenc") String dDtVenc,
+            @JsonProperty("nValorTitulo") BigDecimal nValorTitulo
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
