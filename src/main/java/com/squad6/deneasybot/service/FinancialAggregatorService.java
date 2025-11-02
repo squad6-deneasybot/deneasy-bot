@@ -126,8 +126,19 @@ public class FinancialAggregatorService {
 
         BigDecimal resultadoOp = receitaOp.subtract(custosVar).subtract(despesasFixas);
 
+        String reportType;
+        switch (period.toLowerCase()) {
+            case "weekly":
+                reportType = "Relatório Semanal";
+                break;
+            case "monthly":
+                reportType = "Relatório Mensal";
+                break;
+            default:
+                reportType = "Relatório";
+        }
         return new ReportSimpleDTO(
-                period,
+                reportType,
                 companyName,
                 startDate,
                 endDate,
