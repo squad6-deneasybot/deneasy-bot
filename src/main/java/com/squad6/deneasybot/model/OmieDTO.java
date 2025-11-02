@@ -96,4 +96,21 @@ public final class OmieDTO {
             @JsonProperty("nValRecebido") BigDecimal nValRecebido,
             @JsonProperty("nValAberto") BigDecimal nValAberto
     ) {}
+
+    public record CategoryRequest(
+            String call,
+            @JsonProperty("app_key") String appKey,
+            @JsonProperty("app_secret") String appSecret,
+            List<CategoryRequestParam> param
+    ) {}
+
+    public record CategoryRequestParam(
+            @JsonProperty("codigo") String codigo
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record OmieCategoryDTO(
+            @JsonProperty("descricao") String descricao
+    ) {}
+
 }

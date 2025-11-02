@@ -38,6 +38,8 @@ omie:
      url: https://app.omie.com.br/api/v1/geral/empresas/
    movements:
      url: https://app.omie.com.br/api/v1/financas/mf/
+   categories:
+     url: https://app.omie.com.br/api/v1/geral/categorias/
 
 whatsapp:
   verify-token: ${WHATSAPP_VERIFY_TOKEN}
