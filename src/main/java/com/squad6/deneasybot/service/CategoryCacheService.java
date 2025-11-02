@@ -26,18 +26,13 @@ public class CategoryCacheService {
             return null;
         }
 
-        try {
-            String[] parts = descricao.split(" ", 2);
-            String rootCategory = parts[0];
+        String[] parts = descricao.split(" ", 2);
+        String rootCategory = parts[0];
 
-            if (rootCategory.matches("^[\\d.]+$")) {
-                return rootCategory;
-            } else {
-                logger.warn("Formato de descrição de categoria inesperado: '{}'", descricao);
-                return null;
-            }
-        } catch (Exception e) {
-            logger.error("Erro ao fazer parse da descrição da categoria: '{}'", descricao, e);
+        if (rootCategory.matches("^[\\d.]+$")) {
+            return rootCategory;
+        } else {
+            logger.warn("Formato de descrição de categoria inesperado: '{}'", descricao);
             return null;
         }
     }
