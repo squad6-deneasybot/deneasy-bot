@@ -37,6 +37,9 @@ public class OmieErpClient {
     @Value("${omie.api.movements.url}")
     private String omieMovementsApiUrl;
 
+    @Value("${omie.api.categories.url}")
+    private String omieCategoriesApiUrl;
+
     public OmieErpClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
@@ -148,6 +151,35 @@ public class OmieErpClient {
 
         } catch (RestClientException e) {
             logger.error("Erro de comunicação (ListarMovimentos): {}", e.getMessage(), e);
+            throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
+        }
+    }
+
+    public OmieDTO.OmieCategoryDTO consultCategory(String appKey, String appSecret, String categoryCode) {
+        var param = new OmieDTO.CategoryRequestParam(categoryCode);
+        var requestBody = new OmieDTO.CategoryRequest("ConsultarCategoria", appKey, appSecret, List.of(param));
+
+        try {
+            OmieDTO.OmieCategoryDTO response = restTemplate.postForObject(
+                    omieCategoriesApiUrl,
+                    requestBody,
+                    OmieDTO.OmieCategoryDTO.class
+            );
+
+            if (response == null) {
+                logger.error("Resposta nula da API Omie (ConsultarCategoria) para o código: {}", categoryCode);
+                throw new RuntimeException("Falha ao consultar categoria no ERP: resposta nula.");
+            }
+
+            return response;
+
+        } catch (RestClientResponseException e) {
+            String errorBody = e.getResponseBodyAsString();
+            logger.error("Erro inesperado do cliente (ConsultarCategoria): Status {}, Body {}", e.getStatusCode(), errorBody, e);
+            throw new RuntimeException("Falha na consulta de categoria com o ERP.", e);
+
+        } catch (RestClientException e) {
+            logger.error("Erro de comunicação (ConsultarCategoria): {}", e.getMessage(), e);
             throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
         }
     }
