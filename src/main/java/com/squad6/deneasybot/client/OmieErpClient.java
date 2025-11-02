@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.client;
 
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -24,11 +25,17 @@ public class OmieErpClient {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
+    public static final DateTimeFormatter OMIE_DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    public static final int MAX_REGISTROS_POR_PAGINA = 1000;
+
     @Value("${omie.api.users.url}")
     private String omieUsersApiUrl;
 
     @Value("${omie.api.companies.url}")
     private String omieCompaniesApiUrl;
+
+    @Value("${omie.api.movements.url}")
+    private String omieMovementsApiUrl;
 
     public OmieErpClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
@@ -117,6 +124,30 @@ public class OmieErpClient {
             }
         } catch (RestClientException e) {
             logger.error("Erro de comunicação ao chamar a API Omie (ListarEmpresas): {}", e.getMessage());
+            throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
+        }
+    }
+
+    public OmieDTO.MovementResponse listMovements(String appKey, String appSecret, OmieDTO.MovementFilterParam param) {
+
+        var requestBody = new OmieDTO.MovementRequest("ListarMovimentos", appKey, appSecret, List.of(param));
+
+        try {
+            ResponseEntity<OmieDTO.MovementResponse> responseEntity = restTemplate.postForEntity(
+                    omieMovementsApiUrl,
+                    requestBody,
+                    OmieDTO.MovementResponse.class
+            );
+
+            return responseEntity.getBody();
+
+        } catch (RestClientResponseException e) {
+            String errorBody = e.getResponseBodyAsString();
+            logger.error("Erro inesperado do cliente (ListarMovimentos): Status {}, Body {}", e.getStatusCode(), errorBody, e);
+            throw new RuntimeException("Falha na busca de movimentos com o ERP.", e);
+
+        } catch (RestClientException e) {
+            logger.error("Erro de comunicação (ListarMovimentos): {}", e.getMessage(), e);
             throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
         }
     }
