@@ -1,7 +1,10 @@
 package com.squad6.deneasybot.service;
 
+import com.squad6.deneasybot.exception.InvalidCredentialsException;
 import com.squad6.deneasybot.model.User;
 import com.squad6.deneasybot.model.UserDTO;
+import com.squad6.deneasybot.repository.UserRepository;
+import com.squad6.deneasybot.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -10,6 +13,14 @@ import org.springframework.stereotype.Service;
 public class UserService {
 
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
+
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
+
+    public UserService(UserRepository userRepository, JwtUtil jwtUtil) {
+        this.userRepository = userRepository;
+        this.jwtUtil = jwtUtil;
+    }
 
     /**
      * STUB (Mock) para RF-USER-03 (Dupla 1).
@@ -27,5 +38,13 @@ public class UserService {
         return mockUser;
     }
 
-    // A Dupla 2 irá implementar os outros métodos (update, delete, list) aqui.
+    public UserDTO getMyProfile(String sessionToken) {
+        if (sessionToken == null || !jwtUtil.isTokenValid(sessionToken)) {
+            throw new InvalidCredentialsException("Token de sessão inválido ou expirado.");
+        }
+
+        User user = userRepository.findBySessionToken(sessionToken)
+                .orElseThrow(() -> new InvalidCredentialsException("Usuário não encontrado para o token fornecido."));
+        return new UserDTO(user);
+    }
 }
