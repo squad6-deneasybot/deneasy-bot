@@ -11,6 +11,7 @@ import com.squad6.deneasybot.exception.UserNotFoundInErpException;
 import com.squad6.deneasybot.model.*;
 import com.squad6.deneasybot.repository.UserRepository;
 import com.squad6.deneasybot.util.JwtUtil;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -121,5 +122,14 @@ public class AuthService {
     public CompanyDTO validateCompany(String appKey, String appSecret) {
         return omieErpClient.findCompanyByKeys(appKey, appSecret)
                 .orElseThrow(() -> new InvalidKeysInErpException("As credenciais (appKey/appSecret) são inválidas ou não foram encontradas no ERP."));
+    }
+
+    @Transactional(readOnly = true)
+    public User findUserByToken(String sessionToken) {
+        if (sessionToken == null || !jwtUtil.isTokenValid(sessionToken)) {
+            throw new InvalidCredentialsException("Token inválido ou expirado.");
+        }
+        return userRepository.findBySessionToken(sessionToken)
+                .orElseThrow(() -> new InvalidCredentialsException("Token de sessão não associado a nenhum usuário."));
     }
 }

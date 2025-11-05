@@ -1,47 +1,55 @@
 package com.squad6.deneasybot.service;
 
+import com.squad6.deneasybot.exception.DataIntegrityException;
+import com.squad6.deneasybot.exception.ResourceNotFoundException;
 import com.squad6.deneasybot.model.Company;
 import com.squad6.deneasybot.model.CompanyDTO;
+import com.squad6.deneasybot.repository.CompanyRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CompanyService {
 
     private static final Logger logger = LoggerFactory.getLogger(CompanyService.class);
+    private final CompanyRepository companyRepository;
 
-    /**
-     * STUB (Mock) para RF-AUTH-03.
-     */
-    public CompanyDTO validateCompanyInErp(String appKey, String appSecret) {
-        logger.warn("STUB (CompanyService): Método 'validateCompanyInErp' chamado. Simulando SUCESSO.");
-
-        // Para testar o fluxo de ERRO:
-        // if (appKey.equals("erro")) {
-        //     logger.warn("STUB: Simulando erro de InvalidKeysInErpException");
-        //     throw new InvalidKeysInErpException("Mock: Chaves inválidas");
-        // }
-
-        // Agora isto funciona, pois CompanyDTO é uma CLASSE
-        CompanyDTO mockDto = new CompanyDTO();
-        mockDto.setCompanyName("Mock Company (Stub)");
-        mockDto.setAppKey(appKey);
-        mockDto.setAppSecret(appSecret);
-        return mockDto;
+    public CompanyService(CompanyRepository companyRepository) {
+        this.companyRepository = companyRepository;
     }
 
-    /**
-     * STUB (Mock) para RF-COMPANY-01.
-     */
+    @Transactional
     public Company createCompany(CompanyDTO dto) {
-        // E agora isto também funciona
-        logger.warn("STUB (CompanyService): Método 'createCompany' chamado para {}. Simulando criação.", dto.getCompanyName());
+        logger.info("Criando nova empresa no banco: {}", dto.getCompanyName());
 
-        Company mockCompany = new Company();
-        mockCompany.setId(1L); // ID Fixo de Mock
+        companyRepository.findByAppKey(dto.getAppKey()).ifPresent(existingCompany -> {
+            throw new DataIntegrityException("Já existe uma empresa cadastrada com esta App Key.");
+        });
 
-        mockCompany.setName(dto.getCompanyName());
-        return mockCompany;
+        Company company = new Company();
+        company.setName(dto.getCompanyName());
+        company.setAppKey(dto.getAppKey());
+        company.setAppSecret(dto.getAppSecret());
+
+        return companyRepository.save(company);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompanyDTO> getAllCompanies() {
+        return companyRepository.findAll().stream()
+                .map(CompanyDTO::new)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public CompanyDTO getCompanyById(Long id) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
+        return new CompanyDTO(company);
     }
 }
