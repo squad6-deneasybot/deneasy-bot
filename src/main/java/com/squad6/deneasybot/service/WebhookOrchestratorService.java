@@ -260,9 +260,15 @@ public class WebhookOrchestratorService {
                 break;
         }
     }
+
     private UserProfile getUserProfile(String userPhone) {
-        return userRepository.findByPhone(userPhone)
-                .map(User::getProfile)
-                .orElse(UserProfile.EMPLOYEE);
+        User user = userRepository.findByPhone(userPhone).orElse(null);
+
+        if (user == null) {
+            logger.error("Falha CRÍTICA em getUserProfile: Usuário {} não encontrado no DB, mas estava autenticado.", userPhone);
+            return UserProfile.EMPLOYEE;
+        }
+
+        return user.getProfile();
     }
 }

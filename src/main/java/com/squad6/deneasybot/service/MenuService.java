@@ -7,6 +7,7 @@ import com.squad6.deneasybot.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 @Service
@@ -27,6 +28,7 @@ public class MenuService {
         this.chatStateService = chatStateService;
     }
 
+    @Transactional(readOnly = true)
     public String processMenuOption(String userPhone, String messageText) throws IllegalArgumentException {
         logger.info("MenuService: Processando '{}' para {}", messageText, userPhone);
 
