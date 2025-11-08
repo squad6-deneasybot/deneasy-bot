@@ -40,6 +40,9 @@ public class OmieErpClient {
     @Value("${omie.api.categories.url}")
     private String omieCategoriesApiUrl;
 
+    @Value("${omie.api.summary.url}")
+    private String omieSummaryApiUrl;
+
     public OmieErpClient(RestTemplate restTemplate, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
