@@ -165,7 +165,6 @@ public class FaqService {
             } catch (Exception e) {
                 logger.error("Erro ao processar data de vencimento: {} para o usuário {}", header.dDtVenc(), userPhone,
                         e);
-
             }
         }
 
