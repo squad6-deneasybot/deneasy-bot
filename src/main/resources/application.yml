@@ -40,6 +40,8 @@ omie:
      url: https://app.omie.com.br/api/v1/financas/mf/
    categories:
      url: https://app.omie.com.br/api/v1/geral/categorias/
+   summary:
+     url: https://app.omie.com.br/api/v1/financas/resumo/
 
 whatsapp:
   verify-token: ${WHATSAPP_VERIFY_TOKEN}

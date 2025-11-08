@@ -114,4 +114,25 @@ public final class OmieDTO {
             @JsonProperty("descricao") String descricao
     ) {}
 
+    public record FinancialSummaryRequest(
+            String call,
+            @JsonProperty("app_key") String appKey,
+            @JsonProperty("app_secret") String appSecret,
+            List<FinancialSummaryParam> param
+    ) {}
+
+    public record FinancialSummaryParam(
+            @JsonProperty("dDia") String dDia
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record FinancialSummaryResponse(
+            @JsonProperty("contaCorrente") CurrentAccountSummary contaCorrente
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CurrentAccountSummary(
+            @JsonProperty("vTotal") BigDecimal vTotal
+    ) {}
+
 }
