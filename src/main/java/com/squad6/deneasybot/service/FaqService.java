@@ -140,7 +140,6 @@ public class FaqService {
             }
 
             try {
-
                 LocalDate vencimento = LocalDate.parse(header.dDtVenc(), OmieErpClient.OMIE_DATE_FORMATTER);
 
                 if (!vencimento.isBefore(today)) {
