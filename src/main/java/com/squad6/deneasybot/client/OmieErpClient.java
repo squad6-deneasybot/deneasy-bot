@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.client;
 
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
@@ -183,6 +184,40 @@ public class OmieErpClient {
 
         } catch (RestClientException e) {
             logger.error("Erro de comunicação (ConsultarCategoria): {}", e.getMessage(), e);
+            throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
+        }
+    }
+
+    public OmieDTO.FinancialSummaryResponse getFinancialSummary(String appKey, String appSecret, LocalDate date) {
+        String dDia = date.format(OMIE_DATE_FORMATTER);
+        var param = new OmieDTO.FinancialSummaryParam(dDia);
+        var requestBody = new OmieDTO.FinancialSummaryRequest("ObterResumoFinancas", appKey, appSecret, List.of(param));
+
+        logger.debug("Chamando Omie API (ObterResumoFinancas) para data: {}", dDia);
+
+        try {
+            ResponseEntity<OmieDTO.FinancialSummaryResponse> responseEntity = restTemplate.postForEntity(
+                    omieSummaryApiUrl,
+                    requestBody,
+                    OmieDTO.FinancialSummaryResponse.class
+            );
+
+            OmieDTO.FinancialSummaryResponse response = responseEntity.getBody();
+
+            if (response == null) {
+                logger.error("Resposta nula da API Omie (ObterResumoFinancas) para a data: {}", dDia);
+                throw new RuntimeException("Falha ao obter resumo financeiro: resposta nula.");
+            }
+
+            return response;
+
+        } catch (RestClientResponseException e) {
+            String errorBody = e.getResponseBodyAsString();
+            logger.error("Erro inesperado do cliente (ObterResumoFinancas): Status {}, Body {}", e.getStatusCode(), errorBody);
+            throw new RuntimeException("Falha na busca do resumo financeiro com o ERP.", e);
+
+        } catch (RestClientException e) {
+            logger.error("Erro de comunicação (ObterResumoFinancas): {}", e.getMessage(), e);
             throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
         }
     }

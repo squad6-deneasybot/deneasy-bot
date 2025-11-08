@@ -5,6 +5,7 @@ import com.squad6.deneasybot.model.ReportSimpleDTO;
 import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
 import com.squad6.deneasybot.repository.CompanyRepository;
+import com.squad6.deneasybot.client.OmieErpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,14 +25,16 @@ public class FinancialAggregatorService {
     private final MovementFetcherService movementFetcherService;
     private final CategoryCacheService categoryCacheService;
     private final CompanyRepository companyRepository;
+    private final OmieErpClient omieErpClient;
 
     @Autowired
     public FinancialAggregatorService(MovementFetcherService movementFetcherService,
                                       CategoryCacheService categoryCacheService,
-                                      CompanyRepository companyRepository) {
+                                      CompanyRepository companyRepository, OmieErpClient omieErpClient) {
         this.movementFetcherService = movementFetcherService;
         this.categoryCacheService = categoryCacheService;
         this.companyRepository = companyRepository;
+        this.omieErpClient = omieErpClient;
     }
 
     public ReportSimpleDTO aggregateReportData(String appKey, String appSecret, String period) {
@@ -147,5 +150,21 @@ public class FinancialAggregatorService {
                 despesasFixas,
                 resultadoOp
         );
+    }
+
+    public BigDecimal getCurrentBalance(String appKey, String appSecret) {
+        logger.info("Buscando saldo atual (ObterResumoFinancas)...");
+        LocalDate hoje = LocalDate.now();
+
+        OmieDTO.FinancialSummaryResponse response = omieErpClient.getFinancialSummary(appKey, appSecret, hoje);
+
+        if (response != null && response.contaCorrente() != null && response.contaCorrente().vTotal() != null) {
+            BigDecimal saldoAtual = response.contaCorrente().vTotal();
+            logger.info("Saldo atual obtido: {}", saldoAtual);
+            return saldoAtual;
+        } else {
+            logger.warn("Não foi possível extrair o vTotal (Saldo Atual) da resposta da Omie. Resposta: {}", response);
+            return BigDecimal.ZERO;
+        }
     }
 }
