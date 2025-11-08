@@ -18,14 +18,17 @@ public class MenuService {
     private final WhatsAppFormatterService whatsAppFormatterService;
     private final UserRepository userRepository;
     private final ChatStateService chatStateService;
+    private final FaqService faqService;
 
     public MenuService(ReportService reportService,
                        WhatsAppFormatterService whatsAppFormatterService,
-                       UserRepository userRepository, ChatStateService chatStateService) {
+                       UserRepository userRepository, ChatStateService chatStateService,
+                       FaqService faqService) {
         this.reportService = reportService;
         this.whatsAppFormatterService = whatsAppFormatterService;
         this.userRepository = userRepository;
         this.chatStateService = chatStateService;
+        this.faqService = faqService;
     }
 
     @Transactional(readOnly = true)
@@ -52,7 +55,7 @@ public class MenuService {
                 return whatsAppFormatterService.formatSimpleReport(report);
 
             case "2":
-                return "STUB: Lógica das perguntas frequentes.";
+                return faqService.getProjecaoDeCaixa(userPhone);
 
             case "3":
                 chatStateService.clearAll(userPhone);
