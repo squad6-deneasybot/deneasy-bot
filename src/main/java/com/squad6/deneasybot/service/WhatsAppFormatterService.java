@@ -5,6 +5,8 @@ import com.squad6.deneasybot.model.UserDTO;
 import com.squad6.deneasybot.model.UserProfile;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+
 @Service
 public class WhatsAppFormatterService {
 
@@ -37,6 +39,20 @@ public class WhatsAppFormatterService {
                 "🟠 Custos Variáveis: R$ " + costs + "\n" +
                 "🔴 Despesas Fixas: R$ " + expenses + "\n" +
                 "🔵 *Resultado Operacional: R$ " + result + "*";
+    }
+
+    public String formatFaqProjecaoCaixa(BigDecimal saldoAtual, BigDecimal totalPagar, BigDecimal totalReceber, BigDecimal saldoPrevisto, int dias) {
+
+        String sAtual = String.format("%,.2f", saldoAtual);
+        String sPagar = String.format("%,.2f", totalPagar);
+        String sReceber = String.format("%,.2f", totalReceber);
+        String sPrevisto = String.format("%,.2f", saldoPrevisto);
+
+        return "🔮 *Projeção de Caixa (Próximos " + dias + " dias)*\n\n" +
+                "🔵 Saldo Atual: R$ " + sAtual + "\n" +
+                "🟢 Prev. Receber: R$ " + sReceber + "\n" +
+                "🔴 Prev. Pagar: R$ " + sPagar + "\n\n" +
+                "Saldo Previsto: *R$ " + sPrevisto + "*";
     }
 
     public String formatFallbackError() {
