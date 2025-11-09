@@ -17,6 +17,8 @@ public class WebhookOrchestratorService {
     private final CompanyService companyService;
     private final UserService userService;
     private final MenuService menuService;
+    private final ReportService reportService;
+    private final FaqService faqService;
 
     private final ChatStateService chatStateService;
     private final JwtUtil jwtUtil;
@@ -26,13 +28,15 @@ public class WebhookOrchestratorService {
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
-                                      MenuService menuService, ChatStateService chatStateService,
+                                      MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
                                       WhatsAppFormatterService formatterService, UserRepository userRepository) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
         this.menuService = menuService;
+        this.reportService = reportService;
+        this.faqService = faqService;
         this.chatStateService = chatStateService;
         this.jwtUtil = jwtUtil;
         this.whatsAppService = whatsAppService;
@@ -43,45 +47,57 @@ public class WebhookOrchestratorService {
     @Async
     public void processMessage(String userPhone, String messageText) {
 
+        if ("menu".equalsIgnoreCase(messageText.trim())) {
+            try {
+                UserProfile profile = getUserProfile(userPhone);
+
+                logger.info("Usuário {} solicitou o menu principal (Comando Global).", userPhone);
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                whatsAppService.sendMessage(userPhone, formatterService.formatMenu(profile));
+
+                return;
+
+            } catch (ResourceNotFoundException e) {
+                logger.warn("Usuário {} (não autenticado) digitou 'menu'. Deixando o fluxo normal tratar.", userPhone);
+            }
+        }
+
         synchronized (userPhone.intern()) {
 
             ChatState currentState = chatStateService.getState(userPhone);
 
             try {
                 switch (currentState) {
-
                     case START:
                         handleStateStart(userPhone, messageText);
                         break;
-
                     case AWAITING_APP_KEY:
                         handleStateAwaitingAppKey(userPhone, messageText);
                         break;
                     case AWAITING_APP_SECRET:
                         handleStateAwaitingAppSecret(userPhone, messageText);
                         break;
-
                     case AWAITING_EMAIL:
                         handleStateAwaitingEmail(userPhone, messageText);
                         break;
-
                     case AWAITING_EMAIL_CODE:
                         handleStateAwaitingEmailCode(userPhone, messageText);
                         break;
-
                     case AUTHENTICATED:
                         handleStateAuthenticated(userPhone, messageText);
                         break;
-
                     case AWAITING_POST_ACTION:
                         handleStateAwaitingPostAction(userPhone, messageText);
                         break;
                 }
             } catch (Exception e) {
                 logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
-                if (currentState == ChatState.AUTHENTICATED) {
+
+                if (currentState == ChatState.AUTHENTICATED ||
+                        currentState == ChatState.AWAITING_POST_ACTION)
+                {
                     UserProfile profile = getUserProfile(userPhone);
-                    whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
+                    whatsAppService.sendMessage(userPhone, "Ocorreu um erro inesperado. Estamos te retornando ao menu principal.\n\n" + formatterService.formatMenu(profile));
                     chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
                 } else {
                     whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
@@ -212,27 +228,44 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAuthenticated(String userPhone, String messageText) {
+
         try {
             String actionResponse = menuService.processMenuOption(userPhone, messageText);
-            if (actionResponse.startsWith("[Finalizando]")) {
-                String finalMessage = actionResponse.substring(13);
-                whatsAppService.sendMessage(userPhone, finalMessage);
-                return;
-            }
+
             whatsAppService.sendMessage(userPhone, actionResponse);
-            chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
-            String postActionMenu = formatterService.formatPostActionMenu();
-            whatsAppService.sendMessage(userPhone, postActionMenu);
+
+            String option = messageText.trim();
+
+            if ("1".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+                String postActionMenu = formatterService.formatPostActionMenu();
+                whatsAppService.sendMessage(userPhone, postActionMenu);
+
+            } else if ("2".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_FAQ_CHOICE);
+
+            } else if ("3".equals(option)) {
+                chatStateService.clearAll(userPhone);
+
+            } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) { // 4 = CRUD
+                chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
+
+            } else {
+                if (actionResponse != null) {
+                    throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
+                }
+            }
+
         } catch (IllegalArgumentException e) {
             logger.warn("Opção inválida '{}' para usuário {}", messageText, userPhone);
+
             UserProfile profile = getUserProfile(userPhone);
+
             whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
-        } catch (Exception e) {
-            logger.error("Erro ao processar opção de menu para {}: {}", userPhone, e.getMessage(), e);
-            UserProfile profile = getUserProfile(userPhone);
-            whatsAppService.sendMessage(userPhone, "Ocorreu um erro ao processar sua solicitação. Tente novamente.\n\n" + formatterService.formatMenu(profile));
+
+            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
         }
-        }
+    }
 
 
     private void handleStateAwaitingPostAction(String userPhone, String messageText) {
@@ -259,19 +292,14 @@ public class WebhookOrchestratorService {
                 break;
 
             default:
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
-                whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatPostActionMenu());
                 break;
         }
     }
 
     private UserProfile getUserProfile(String userPhone) {
-        User user = userRepository.findByPhone(userPhone).orElse(null);
-
-        if (user == null) {
-            logger.error("Falha CRÍTICA em getUserProfile: Usuário {} não encontrado no DB, mas estava autenticado.", userPhone);
-            return UserProfile.EMPLOYEE;
-        }
+        User user = userRepository.findByPhone(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone + " (dentro de getUserProfile)"));
 
         return user.getProfile();
     }
