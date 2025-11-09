@@ -1,14 +1,14 @@
 package com.squad6.deneasybot.service;
 
 import java.math.BigDecimal;
-import java.util.List; // Import Adicionado
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import com.squad6.deneasybot.model.ReportSimpleDTO;
 import com.squad6.deneasybot.model.UserDTO;
 import com.squad6.deneasybot.model.UserProfile;
-import com.squad6.deneasybot.service.FaqService.CategoryStat; // Import Adicionado
+import com.squad6.deneasybot.model.CategoryStat; // Importe o novo DTO
 
 @Service
 public class WhatsAppFormatterService {
@@ -89,11 +89,16 @@ public class WhatsAppFormatterService {
                 + "• Mais de 90 dias: " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
     }
 
+    /**
+     * Formata a resposta para a FAQ "Top 3 Geradores de Despesa".
+     */
     public String formatFaqTopCategorias(List<CategoryStat> topCategories) {
+        // Retorno Vazio
         if (topCategories == null || topCategories.isEmpty()) {
             return "Não localizamos nenhuma despesa paga nos últimos 30 dias.";
         }
 
+        // Retorno com Dados
         StringBuilder response = new StringBuilder(
                 "Aqui estão seus principais geradores de despesa nos últimos 30 dias:\n\n");
 
@@ -101,6 +106,7 @@ public class WhatsAppFormatterService {
 
         for (int i = 0; i < topCategories.size(); i++) {
             CategoryStat stat = topCategories.get(i);
+            // Usando o mesmo padrão de formatação de moeda dos outros métodos
             String formattedValue = String.format("%,.2f", stat.totalValue());
             String categoryName = stat.categoryName();
 

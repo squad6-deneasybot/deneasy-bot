@@ -1,4 +1,6 @@
 package com.squad6.deneasybot.model;
 
-public record CategoryStat() {
+import java.math.BigDecimal;
+
+public record CategoryStat(String categoryName, BigDecimal totalValue) {
 }
