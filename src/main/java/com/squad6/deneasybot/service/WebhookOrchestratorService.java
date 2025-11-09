@@ -42,47 +42,51 @@ public class WebhookOrchestratorService {
 
     @Async
     public void processMessage(String userPhone, String messageText) {
-        ChatState currentState = chatStateService.getState(userPhone);
 
-        try {
-            switch (currentState) {
+        synchronized (userPhone.intern()) {
 
-                case START:
-                    handleStateStart(userPhone, messageText);
-                    break;
+            ChatState currentState = chatStateService.getState(userPhone);
 
-                case AWAITING_APP_KEY:
-                    handleStateAwaitingAppKey(userPhone, messageText);
-                    break;
-                case AWAITING_APP_SECRET:
-                    handleStateAwaitingAppSecret(userPhone, messageText);
-                    break;
+            try {
+                switch (currentState) {
 
-                case AWAITING_EMAIL:
-                    handleStateAwaitingEmail(userPhone, messageText);
-                    break;
+                    case START:
+                        handleStateStart(userPhone, messageText);
+                        break;
 
-                case AWAITING_EMAIL_CODE:
-                    handleStateAwaitingEmailCode(userPhone, messageText);
-                    break;
+                    case AWAITING_APP_KEY:
+                        handleStateAwaitingAppKey(userPhone, messageText);
+                        break;
+                    case AWAITING_APP_SECRET:
+                        handleStateAwaitingAppSecret(userPhone, messageText);
+                        break;
 
-                case AUTHENTICATED:
-                    handleStateAuthenticated(userPhone, messageText);
-                    break;
+                    case AWAITING_EMAIL:
+                        handleStateAwaitingEmail(userPhone, messageText);
+                        break;
 
-                case AWAITING_POST_ACTION:
-                    handleStateAwaitingPostAction(userPhone, messageText);
-                    break;
-            }
-        } catch (Exception e) {
-            logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
-            if (currentState == ChatState.AUTHENTICATED) {
-                UserProfile profile = getUserProfile(userPhone);
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
-                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
-            } else {
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
-                chatStateService.setState(userPhone, ChatState.START);
+                    case AWAITING_EMAIL_CODE:
+                        handleStateAwaitingEmailCode(userPhone, messageText);
+                        break;
+
+                    case AUTHENTICATED:
+                        handleStateAuthenticated(userPhone, messageText);
+                        break;
+
+                    case AWAITING_POST_ACTION:
+                        handleStateAwaitingPostAction(userPhone, messageText);
+                        break;
+                }
+            } catch (Exception e) {
+                logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
+                if (currentState == ChatState.AUTHENTICATED) {
+                    UserProfile profile = getUserProfile(userPhone);
+                    whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
+                    chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                } else {
+                    whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError());
+                    chatStateService.setState(userPhone, ChatState.START);
+                }
             }
         }
     }
