@@ -3,7 +3,12 @@ package com.squad6.deneasybot.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +20,7 @@ import com.squad6.deneasybot.model.Company;
 import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
 import com.squad6.deneasybot.model.OmieDTO.MovementHeader;
+import com.squad6.deneasybot.model.OmieDTO.MovementSummary;
 import com.squad6.deneasybot.model.User;
 import com.squad6.deneasybot.repository.UserRepository;
 
@@ -28,14 +34,20 @@ public class FaqService {
     private final MovementFetcherService movementFetcherService;
     private final UserRepository userRepository;
     private final WhatsAppFormatterService formatterService;
+    private final CategoryCacheService categoryCacheService;
 
     public FaqService(FinancialAggregatorService financialAggregatorService,
-            MovementFetcherService movementFetcherService, UserRepository userRepository,
-            WhatsAppFormatterService formatterService) {
+                      MovementFetcherService movementFetcherService, UserRepository userRepository,
+                      WhatsAppFormatterService formatterService,
+                      CategoryCacheService categoryCacheService) {
         this.financialAggregatorService = financialAggregatorService;
         this.movementFetcherService = movementFetcherService;
         this.userRepository = userRepository;
         this.formatterService = formatterService;
+        this.categoryCacheService = categoryCacheService;
+    }
+
+    public record CategoryStat(String categoryName, BigDecimal totalValue) {
     }
 
     @Transactional(readOnly = true)
@@ -173,5 +185,68 @@ public class FaqService {
 
         return formatterService.formatFaqTitulosEmAtraso(count1_30, total1_30, count31_60, total31_60, count61_90,
                 total61_90, count90_plus, total90_plus);
+    }
+
+    @Transactional(readOnly = true)
+    public String getTopDespesasPorCategoria(String userPhone) {
+        logger.info("Iniciando busca 'Top 3 Despesas' para {}", userPhone);
+
+        User user = userRepository.findByPhone(userPhone).orElseThrow(() -> {
+            logger.error("Usuário {} não encontrado no banco para Top Despesas.", userPhone);
+            return new RuntimeException("Usuário não encontrado para Top Despesas.");
+        });
+        Company company = user.getCompany();
+        String appKey = company.getAppKey();
+        String appSecret = company.getAppSecret();
+
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30);
+
+        List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate,
+                endDate);
+
+        final List<String> statusPago = List.of("PAGO", "LIQUIDADO");
+        final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
+        Map<String, BigDecimal> aggregationMap = new HashMap<>();
+
+        for (MovementDetail movement : movements) {
+            MovementHeader header = movement.header();
+            MovementSummary summary = movement.summary();
+
+            if (header == null || summary == null || header.cGrupo() == null || header.cStatus() == null
+                    || header.cCodCateg() == null || summary.nValPago() == null) {
+                continue;
+            }
+
+            if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) && statusPago.contains(header.cStatus())) {
+                String categoryCode = header.cCodCateg();
+                BigDecimal value = summary.nValPago();
+                aggregationMap.merge(categoryCode, value, BigDecimal::add);
+            }
+        }
+
+        List<Map.Entry<String, BigDecimal>> sortedList = aggregationMap.entrySet().stream()
+                .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
+                .limit(3)
+                .collect(Collectors.toList());
+
+        List<CategoryStat> topCategories = new ArrayList<>();
+        for (Map.Entry<String, BigDecimal> entry : sortedList) {
+            String categoryCode = entry.getKey();
+            BigDecimal totalValue = entry.getValue();
+
+            String categoryName = categoryCacheService.getRootCategory(appKey, appSecret, categoryCode);
+
+            if (categoryName == null || categoryName.isBlank()) {
+                categoryName = categoryCode;
+                logger.warn("Não foi possível encontrar o nome da categoria para o código: {}. Usando o código.", categoryCode);
+            }
+
+            topCategories.add(new CategoryStat(categoryName, totalValue));
+        }
+
+        logger.info("Top despesas para {} ({}): {}", userPhone, sortedList.size(), topCategories);
+
+        return formatterService.formatFaqTopCategorias(topCategories);
     }
 }
