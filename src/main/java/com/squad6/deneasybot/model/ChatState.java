@@ -1,0 +1,13 @@
+package com.squad6.deneasybot.model;
+
+public enum ChatState {
+    START,
+    AWAITING_APP_KEY,
+    AWAITING_APP_SECRET,
+    AWAITING_EMAIL,
+    AWAITING_EMAIL_CODE,
+    AUTHENTICATED,
+    AWAITING_POST_ACTION,
+    AWAITING_CRUD_MENU_CHOICE,
+    AWAITING_FAQ_CHOICE
+}
