@@ -1,6 +1,7 @@
 package com.squad6.deneasybot.service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
@@ -85,6 +86,32 @@ public class WhatsAppFormatterService {
                 + formattedTotal1_30 + ")\n" + "• 31 a 60 dias: " + count31_60 + " títulos (R$ " + formattedTotal31_60
                 + ")\n" + "• 61 a 90 dias: " + count61_90 + " títulos (R$ " + formattedTotal61_90 + ")\n"
                 + "• Mais de 90 dias: " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
+    }
+
+    public String formatFaqTopCategorias(List<FaqService.CategoryStat> topCategories) {
+        if (topCategories == null || topCategories.isEmpty()) {
+            return "Não localizamos nenhuma despesa paga nos últimos 30 dias.";
+        }
+
+        StringBuilder response = new StringBuilder(
+                "Aqui estão seus principais geradores de despesa nos últimos 30 dias:\n\n");
+
+        String[] emojis = { "🥇 1.", "🥈 2.", "🥉 3." };
+
+        for (int i = 0; i < topCategories.size(); i++) {
+            FaqService.CategoryStat stat = topCategories.get(i);
+            String formattedValue = String.format("%,.2f", stat.totalValue());
+            String categoryName = stat.categoryName();
+
+            response.append(emojis[i])
+                    .append(" ")
+                    .append(categoryName)
+                    .append(" (R$ ")
+                    .append(formattedValue)
+                    .append(")\n");
+        }
+
+        return response.toString().trim();
     }
 
 }
