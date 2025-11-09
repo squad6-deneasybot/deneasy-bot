@@ -103,16 +103,8 @@ public class AuthService {
         userDTO.setName(erpUser.nome());
         userDTO.setEmail(erpUser.email());
 
-        String rawPhoneFromErp = erpUser.celular();
-
-        String normalizedPhone = null;
-        if (rawPhoneFromErp != null && !rawPhoneFromErp.isBlank()) {
-            normalizedPhone = rawPhoneFromErp.replaceAll("[^\\d]", "");
-        }
-
-        if (normalizedPhone != null && (normalizedPhone.length() == 10 || normalizedPhone.length() == 11) && !normalizedPhone.startsWith("55")) {
-            normalizedPhone = "55" + normalizedPhone;
-        }
+        String rawPhone = erpUser.celular();
+        String normalizedPhone = normalizePhoneNumber(rawPhone);
 
         userDTO.setPhone(normalizedPhone);
 
@@ -131,5 +123,29 @@ public class AuthService {
         }
         return userRepository.findBySessionToken(sessionToken)
                 .orElseThrow(() -> new InvalidCredentialsException("Token de sessão não associado a nenhum usuário."));
+    }
+
+    private String normalizePhoneNumber(String rawPhone) {
+        if (rawPhone == null || rawPhone.isBlank()) {
+            return null;
+        }
+
+        String digitsOnly = rawPhone.replaceAll("[^\\d]", "");
+
+        if (digitsOnly.length() == 10) {
+            digitsOnly = "55" + digitsOnly;
+        } else if (digitsOnly.length() == 11) {
+            digitsOnly = "55" + digitsOnly;
+        }
+
+        if (digitsOnly.startsWith("55") && digitsOnly.length() == 13 && digitsOnly.charAt(4) == '9') {
+            String countryCode = digitsOnly.substring(0, 2);
+            String ddd = digitsOnly.substring(2, 4);
+            String mainNumber = digitsOnly.substring(5);
+
+            return countryCode + ddd + mainNumber;
+        }
+
+        return digitsOnly;
     }
 }
