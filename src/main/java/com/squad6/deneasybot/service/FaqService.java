@@ -31,7 +31,7 @@ public class FaqService {
     private static final Logger logger = LoggerFactory.getLogger(FaqService.class);
 
     private static final int PROJECTION_DAYS = 7;
-    private static final Set<String> STATUS_EM_ABERTO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
+    private static final Set<String> STATUS_FECHADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
     private static final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
     private static final String GRUPO_CONTA_A_RECEBER = "CONTA_A_RECEBER";
 
@@ -208,7 +208,6 @@ public class FaqService {
                 endDate);
 
         final List<String> statusPago = List.of("PAGO", "LIQUIDADO");
-        final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
         Map<String, BigDecimal> aggregationMap = new HashMap<>();
 
         for (MovementDetail movement : movements) {
@@ -278,27 +277,15 @@ public class FaqService {
                 continue;
             }
 
-            if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) && !STATUS_EM_ABERTO.contains(header.cStatus().toUpperCase())) {
-                try {
-                    LocalDate dtVenc = LocalDate.parse(header.dDtVenc(), OmieErpClient.OMIE_DATE_FORMATTER);
-                    if (!dtVenc.isBefore(startDate) && !dtVenc.isAfter(endDate)) {
-                        totalPagar = totalPagar.add(summary.nValAberto());
-                        countPagar++;
-                    }
-                } catch (Exception e) {
-                    logger.warn("Formato de data inválido em Título a Pagar: {}", header.dDtVenc());
-                }
-            }
+            if (!STATUS_FECHADO.contains(header.cStatus().toUpperCase())) {
 
-            if (GRUPO_CONTA_A_RECEBER.equals(header.cGrupo()) && !STATUS_EM_ABERTO.contains(header.cStatus().toUpperCase())) {
-                try {
-                    LocalDate dtVenc = LocalDate.parse(header.dDtVenc(), OmieErpClient.OMIE_DATE_FORMATTER);
-                    if (!dtVenc.isBefore(startDate) && !dtVenc.isAfter(endDate)) {
-                        totalReceber = totalReceber.add(summary.nValAberto());
-                        countReceber++;
-                    }
-                } catch (Exception e) {
-                    logger.warn("Formato de data inválido em Título a Receber: {}", header.dDtVenc());
+                if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
+                    totalPagar = totalPagar.add(summary.nValAberto());
+                    countPagar++;
+                }
+                else if (GRUPO_CONTA_A_RECEBER.equals(header.cGrupo())) {
+                    totalReceber = totalReceber.add(summary.nValAberto());
+                    countReceber++;
                 }
             }
         }
