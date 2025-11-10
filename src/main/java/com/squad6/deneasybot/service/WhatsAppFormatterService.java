@@ -1,17 +1,23 @@
 package com.squad6.deneasybot.service;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 
 import com.squad6.deneasybot.model.ReportSimpleDTO;
 import com.squad6.deneasybot.model.UserDTO;
 import com.squad6.deneasybot.model.UserProfile;
-import com.squad6.deneasybot.model.CategoryStat; // Importe o novo DTO
+import com.squad6.deneasybot.model.CategoryStat;
 
 @Service
 public class WhatsAppFormatterService {
+
+    private static final Locale PT_BR = Locale.of("pt", "BR");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public String formatMenu(UserProfile profile) {
         StringBuilder menu = new StringBuilder();
@@ -29,15 +35,21 @@ public class WhatsAppFormatterService {
 
     public String formatSimpleReport(ReportSimpleDTO dto) {
 
-        String revenue = String.format("%,.2f", dto.operationalRevenue());
-        String costs = String.format("%,.2f", dto.variableCosts());
-        String expenses = String.format("%,.2f", dto.fixedExpenses());
-        String result = String.format("%,.2f", dto.operationalResult());
+        String revenue = formatCurrency(dto.operationalRevenue());
+        String costs = formatCurrency(dto.variableCosts());
+        String expenses = formatCurrency(dto.fixedExpenses());
+        String result = formatCurrency(dto.operationalResult());
 
-        return "📊 *Relatório " + dto.reportType() + "* \n\n" + "Empresa: " + dto.companyName() + "\n" + "Período: "
-                + dto.startDate() + " a " + dto.endDate() + "\n\n" + "🟢 Receita Operacional: R$ " + revenue + "\n"
-                + "🟠 Custos Variáveis: R$ " + costs + "\n" + "🔴 Despesas Fixas: R$ " + expenses + "\n"
-                + "🔵 *Resultado Operacional: R$ " + result + "*";
+        String startDateStr = (dto.startDate() != null) ? dto.startDate().format(DATE_FORMATTER) : "N/A";
+        String endDateStr = (dto.endDate() != null) ? dto.endDate().format(DATE_FORMATTER) : "N/A";
+
+        return "📊 *Relatório " + dto.reportType() + "* \n\n" +
+                "Empresa: " + dto.companyName() + "\n" +
+                "Período: " + startDateStr + " a " + endDateStr + "\n\n" +
+                "🟢 Receita Operacional: " + revenue + "\n" +
+                "🟠 Custos Variáveis: " + costs + "\n" +
+                "🔴 Despesas Fixas: " + expenses + "\n" +
+                "🔵 *Resultado Operacional: " + result + "*";
     }
 
     public String formatFaqProjecaoCaixa(BigDecimal saldoAtual, BigDecimal totalPagar, BigDecimal totalReceber,
@@ -62,8 +74,12 @@ public class WhatsAppFormatterService {
     }
 
     public String formatPostActionMenu() {
-        return "O que você gostaria de fazer agora?\n\n" + "1️⃣ Voltar ao Menu Principal\n"
-                + "2️⃣ Falar com um Atendente\n" + "3️⃣ Encerrar Atendimento";
+        return """
+                O que você gostaria de fazer agora?
+                
+                1️⃣ Voltar ao Menu Principal
+                2️⃣ Falar com um Atendente
+                3️⃣ Encerrar Atendimento""";
     }
 
     public String formatFaqTitulosEmAtraso(long count1_30, BigDecimal total1_30, long count31_60, BigDecimal total31_60,
@@ -89,16 +105,11 @@ public class WhatsAppFormatterService {
                 + "• Mais de 90 dias: " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
     }
 
-    /**
-     * Formata a resposta para a FAQ "Top 3 Geradores de Despesa".
-     */
     public String formatFaqTopCategorias(List<CategoryStat> topCategories) {
-        // Retorno Vazio
         if (topCategories == null || topCategories.isEmpty()) {
             return "Não localizamos nenhuma despesa paga nos últimos 30 dias.";
         }
 
-        // Retorno com Dados
         StringBuilder response = new StringBuilder(
                 "Aqui estão seus principais geradores de despesa nos últimos 30 dias:\n\n");
 
@@ -106,8 +117,7 @@ public class WhatsAppFormatterService {
 
         for (int i = 0; i < topCategories.size(); i++) {
             CategoryStat stat = topCategories.get(i);
-            // Usando o mesmo padrão de formatação de moeda dos outros métodos
-            String formattedValue = String.format("%,.2f", stat.totalValue());
+            String formattedValue = formatCurrency(stat.totalValue());
             String categoryName = stat.categoryName();
 
             response.append(emojis[i])
@@ -118,7 +128,35 @@ public class WhatsAppFormatterService {
                     .append(")\n");
         }
 
-        return response.toString().trim(); // .trim() para remover a nova linha final
+        return response.toString().trim();
     }
 
+    public String formatFaqTitulosAVencer(int countPagar, BigDecimal totalPagar, int countReceber, BigDecimal totalReceber, int days) {
+        if (countPagar == 0 && countReceber == 0) {
+            return "Boas notícias! Você não possui títulos a pagar ou a receber nos próximos " + days + " dias.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Nos próximos *").append(days).append(" dias*, você tem:\n\n");
+
+        if (countPagar > 0) {
+            sb.append("🔴 *A Pagar:* ").append(countPagar).append(" títulos, totalizando ")
+                    .append(formatCurrency(totalPagar)).append(".\n");
+        }
+
+        if (countReceber > 0) {
+            sb.append("🟢 *A Receber:* ").append(countReceber).append(" títulos, totalizando ")
+                    .append(formatCurrency(totalReceber)).append(".");
+        }
+
+        return sb.toString().trim();
+    }
+
+    private String formatCurrency(BigDecimal value) {
+        if (value == null) {
+            value = BigDecimal.ZERO;
+        }
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(PT_BR);
+        return currencyFormatter.format(value);
+    }
 }

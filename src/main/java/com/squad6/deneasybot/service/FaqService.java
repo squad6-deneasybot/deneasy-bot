@@ -4,11 +4,10 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,12 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.squad6.deneasybot.client.OmieErpClient;
+import com.squad6.deneasybot.exception.ResourceNotFoundException;
 import com.squad6.deneasybot.model.Company;
-import com.squad6.deneasybot.model.CategoryStat; // Importe o novo DTO
+import com.squad6.deneasybot.model.CategoryStat;
 import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
 import com.squad6.deneasybot.model.OmieDTO.MovementHeader;
-import com.squad6.deneasybot.model.OmieDTO.MovementSummary; // Import necessário
+import com.squad6.deneasybot.model.OmieDTO.MovementSummary;
 import com.squad6.deneasybot.model.User;
 import com.squad6.deneasybot.repository.UserRepository;
 
@@ -29,23 +29,27 @@ import com.squad6.deneasybot.repository.UserRepository;
 public class FaqService {
 
     private static final Logger logger = LoggerFactory.getLogger(FaqService.class);
+
     private static final int PROJECTION_DAYS = 7;
+    private static final Set<String> STATUS_FECHADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
+    private static final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
+    private static final String GRUPO_CONTA_A_RECEBER = "CONTA_A_RECEBER";
 
     private final FinancialAggregatorService financialAggregatorService;
     private final MovementFetcherService movementFetcherService;
     private final UserRepository userRepository;
     private final WhatsAppFormatterService formatterService;
-    private final CategoryCacheService categoryCacheService; // Dependência Adicionada
+    private final CategoryCacheService categoryCacheService;
 
     public FaqService(FinancialAggregatorService financialAggregatorService,
                       MovementFetcherService movementFetcherService, UserRepository userRepository,
                       WhatsAppFormatterService formatterService,
-                      CategoryCacheService categoryCacheService) { // Dependência Adicionada
+                      CategoryCacheService categoryCacheService) {
         this.financialAggregatorService = financialAggregatorService;
         this.movementFetcherService = movementFetcherService;
         this.userRepository = userRepository;
         this.formatterService = formatterService;
-        this.categoryCacheService = categoryCacheService; // Dependência Adicionada
+        this.categoryCacheService = categoryCacheService;
     }
 
     @Transactional(readOnly = true)
@@ -185,14 +189,10 @@ public class FaqService {
                 total61_90, count90_plus, total90_plus);
     }
 
-    /**
-     * Busca os principais geradores de despesas (Top 3) dos últimos 30 dias.
-     */
     @Transactional(readOnly = true)
     public String getTopDespesasPorCategoria(String userPhone) {
         logger.info("Iniciando busca 'Top 3 Despesas' para {}", userPhone);
 
-        // a. Buscar Credenciais
         User user = userRepository.findByPhone(userPhone).orElseThrow(() -> {
             logger.error("Usuário {} não encontrado no banco para Top Despesas.", userPhone);
             return new RuntimeException("Usuário não encontrado para Top Despesas.");
@@ -201,17 +201,13 @@ public class FaqService {
         String appKey = company.getAppKey();
         String appSecret = company.getAppSecret();
 
-        // b. Definir Período (Últimos 30 dias)
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(30);
 
-        // c. Chamar Coletor (RF-ERP-01)
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate,
                 endDate);
 
-        // d. Filtrar Movimentos & e. Agregar por Categoria
         final List<String> statusPago = List.of("PAGO", "LIQUIDADO");
-        final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
         Map<String, BigDecimal> aggregationMap = new HashMap<>();
 
         for (MovementDetail movement : movements) {
@@ -220,34 +216,28 @@ public class FaqService {
 
             if (header == null || summary == null || header.cGrupo() == null || header.cStatus() == null
                     || header.cCodCateg() == null || summary.nValPago() == null) {
-                continue; // Pular dados incompletos
+                continue;
             }
 
-            // Filtrar por CONTA_A_PAGAR e Status PAGO/LIQUIDADO
             if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) && statusPago.contains(header.cStatus())) {
                 String categoryCode = header.cCodCateg();
                 BigDecimal value = summary.nValPago();
-                // Agregar (somar) valores por código de categoria
                 aggregationMap.merge(categoryCode, value, BigDecimal::add);
             }
         }
 
-        // f. Ordenar e Pegar Top 3
         List<Map.Entry<String, BigDecimal>> sortedList = aggregationMap.entrySet().stream()
                 .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
                 .limit(3)
-                .collect(Collectors.toList());
+                .toList();
 
-        // g. Buscar Nomes (RF-ERP-02)
         List<CategoryStat> topCategories = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : sortedList) {
             String categoryCode = entry.getKey();
             BigDecimal totalValue = entry.getValue();
 
-            // Usar o cache para buscar o nome raiz da categoria
             String categoryName = categoryCacheService.getRootCategory(appKey, appSecret, categoryCode);
 
-            // Fallback: se o nome não for encontrado no cache/API, usar o próprio código
             if (categoryName == null || categoryName.isBlank()) {
                 categoryName = categoryCode;
                 logger.warn("Não foi possível encontrar o nome da categoria para o código: {}. Usando o código.", categoryCode);
@@ -258,7 +248,48 @@ public class FaqService {
 
         logger.info("Top despesas para {} ({}): {}", userPhone, sortedList.size(), topCategories);
 
-        // h. Retornar string formatada
         return formatterService.formatFaqTopCategorias(topCategories);
+    }
+
+    @Transactional(readOnly = true)
+    public String getTitulosAVencer(String userPhone) {
+        User user = userRepository.findByPhone(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
+        Company company = user.getCompany();
+        String appKey = company.getAppKey();
+        String appSecret = company.getAppSecret();
+
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = LocalDate.now().plusDays(PROJECTION_DAYS);
+
+        List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate, endDate);
+
+        BigDecimal totalPagar = BigDecimal.ZERO;
+        int countPagar = 0;
+        BigDecimal totalReceber = BigDecimal.ZERO;
+        int countReceber = 0;
+
+        for (MovementDetail movement : movements) {
+            MovementHeader header = movement.header();
+            MovementSummary summary = movement.summary();
+
+            if (header == null || summary == null || header.cGrupo() == null || header.cStatus() == null || header.dDtVenc() == null || summary.nValAberto() == null) {
+                continue;
+            }
+
+            if (!STATUS_FECHADO.contains(header.cStatus().toUpperCase())) {
+
+                if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
+                    totalPagar = totalPagar.add(summary.nValAberto());
+                    countPagar++;
+                }
+                else if (GRUPO_CONTA_A_RECEBER.equals(header.cGrupo())) {
+                    totalReceber = totalReceber.add(summary.nValAberto());
+                    countReceber++;
+                }
+            }
+        }
+
+        return formatterService.formatFaqTitulosAVencer(countPagar, totalPagar, countReceber, totalReceber, PROJECTION_DAYS);
     }
 }
