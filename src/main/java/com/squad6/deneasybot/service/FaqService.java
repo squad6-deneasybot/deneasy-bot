@@ -3,7 +3,6 @@ package com.squad6.deneasybot.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -305,6 +304,6 @@ public class FaqService {
             }
         }
 
-        return formatterService.formatFaqTítulosAVencer(countPagar, totalPagar, countReceber, totalReceber, PROJECTION_DAYS);
+        return formatterService.formatFaqTitulosAVencer(countPagar, totalPagar, countReceber, totalReceber, PROJECTION_DAYS);
     }
 }
