@@ -1,7 +1,10 @@
 package com.squad6.deneasybot.service;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 
@@ -12,6 +15,9 @@ import com.squad6.deneasybot.model.CategoryStat; // Importe o novo DTO
 
 @Service
 public class WhatsAppFormatterService {
+
+    private static final Locale PT_BR = new Locale("pt", "BR");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public String formatMenu(UserProfile profile) {
         StringBuilder menu = new StringBuilder();
@@ -89,16 +95,11 @@ public class WhatsAppFormatterService {
                 + "• Mais de 90 dias: " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
     }
 
-    /**
-     * Formata a resposta para a FAQ "Top 3 Geradores de Despesa".
-     */
     public String formatFaqTopCategorias(List<CategoryStat> topCategories) {
-        // Retorno Vazio
         if (topCategories == null || topCategories.isEmpty()) {
             return "Não localizamos nenhuma despesa paga nos últimos 30 dias.";
         }
 
-        // Retorno com Dados
         StringBuilder response = new StringBuilder(
                 "Aqui estão seus principais geradores de despesa nos últimos 30 dias:\n\n");
 
@@ -106,7 +107,6 @@ public class WhatsAppFormatterService {
 
         for (int i = 0; i < topCategories.size(); i++) {
             CategoryStat stat = topCategories.get(i);
-            // Usando o mesmo padrão de formatação de moeda dos outros métodos
             String formattedValue = String.format("%,.2f", stat.totalValue());
             String categoryName = stat.categoryName();
 
@@ -118,7 +118,14 @@ public class WhatsAppFormatterService {
                     .append(")\n");
         }
 
-        return response.toString().trim(); // .trim() para remover a nova linha final
+        return response.toString().trim();
     }
 
+    private String formatCurrency(BigDecimal value) {
+        if (value == null) {
+            value = BigDecimal.ZERO;
+        }
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(PT_BR);
+        return currencyFormatter.format(value);
+    }
 }
