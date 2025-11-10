@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -231,7 +230,7 @@ public class FaqService {
         List<Map.Entry<String, BigDecimal>> sortedList = aggregationMap.entrySet().stream()
                 .sorted(Map.Entry.<String, BigDecimal>comparingByValue().reversed())
                 .limit(3)
-                .collect(Collectors.toList());
+                .toList();
 
         List<CategoryStat> topCategories = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : sortedList) {
