@@ -35,10 +35,10 @@ public class WhatsAppFormatterService {
 
     public String formatSimpleReport(ReportSimpleDTO dto) {
 
-        String revenue = String.format("%,.2f", dto.operationalRevenue());
-        String costs = String.format("%,.2f", dto.variableCosts());
-        String expenses = String.format("%,.2f", dto.fixedExpenses());
-        String result = String.format("%,.2f", dto.operationalResult());
+        String revenue = formatCurrency(dto.operationalRevenue());
+        String costs = formatCurrency(dto.variableCosts());
+        String expenses = formatCurrency(dto.fixedExpenses());
+        String result = formatCurrency(dto.operationalResult());
 
         return "📊 *Relatório " + dto.reportType() + "* \n\n" + "Empresa: " + dto.companyName() + "\n" + "Período: "
                 + dto.startDate() + " a " + dto.endDate() + "\n\n" + "🟢 Receita Operacional: R$ " + revenue + "\n"
@@ -107,7 +107,7 @@ public class WhatsAppFormatterService {
 
         for (int i = 0; i < topCategories.size(); i++) {
             CategoryStat stat = topCategories.get(i);
-            String formattedValue = String.format("%,.2f", stat.totalValue());
+            String formattedValue = formatCurrency(stat.totalValue());
             String categoryName = stat.categoryName();
 
             response.append(emojis[i])
