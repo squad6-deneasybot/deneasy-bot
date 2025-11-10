@@ -40,8 +40,11 @@ public class WhatsAppFormatterService {
         String expenses = formatCurrency(dto.fixedExpenses());
         String result = formatCurrency(dto.operationalResult());
 
+        String startDateStr = (dto.startDate() != null) ? dto.startDate().format(DATE_FORMATTER) : "N/A";
+        String endDateStr = (dto.endDate() != null) ? dto.endDate().format(DATE_FORMATTER) : "N/A";
+
         return "📊 *Relatório " + dto.reportType() + "* \n\n" + "Empresa: " + dto.companyName() + "\n" + "Período: "
-                + dto.startDate() + " a " + dto.endDate() + "\n\n" + "🟢 Receita Operacional: R$ " + revenue + "\n"
+                + startDateStr + " a " + endDateStr + "\n\n" + "🟢 Receita Operacional: R$ " + revenue + "\n"
                 + "🟠 Custos Variáveis: R$ " + costs + "\n" + "🔴 Despesas Fixas: R$ " + expenses + "\n"
                 + "🔵 *Resultado Operacional: R$ " + result + "*";
     }
