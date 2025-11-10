@@ -121,6 +121,27 @@ public class WhatsAppFormatterService {
         return response.toString().trim();
     }
 
+    public String formatFaqTitulosAVencer(int countPagar, BigDecimal totalPagar, int countReceber, BigDecimal totalReceber, int days) {
+        if (countPagar == 0 && countReceber == 0) {
+            return "Boas notícias! Você não possui títulos a pagar ou a receber nos próximos " + days + " dias.";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("Nos próximos *").append(days).append(" dias*, você tem:\n\n");
+
+        if (countPagar > 0) {
+            sb.append("🔴 *A Pagar:* ").append(countPagar).append(" títulos, totalizando ")
+                    .append(formatCurrency(totalPagar)).append(".\n");
+        }
+
+        if (countReceber > 0) {
+            sb.append("🟢 *A Receber:* ").append(countReceber).append(" títulos, totalizando ")
+                    .append(formatCurrency(totalReceber)).append(".");
+        }
+
+        return sb.toString().trim();
+    }
+
     private String formatCurrency(BigDecimal value) {
         if (value == null) {
             value = BigDecimal.ZERO;
