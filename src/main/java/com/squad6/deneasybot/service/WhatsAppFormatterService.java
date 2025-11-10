@@ -11,12 +11,12 @@ import org.springframework.stereotype.Service;
 import com.squad6.deneasybot.model.ReportSimpleDTO;
 import com.squad6.deneasybot.model.UserDTO;
 import com.squad6.deneasybot.model.UserProfile;
-import com.squad6.deneasybot.model.CategoryStat; // Importe o novo DTO
+import com.squad6.deneasybot.model.CategoryStat;
 
 @Service
 public class WhatsAppFormatterService {
 
-    private static final Locale PT_BR = new Locale("pt", "BR");
+    private static final Locale PT_BR = Locale.of("pt", "BR");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public String formatMenu(UserProfile profile) {
@@ -68,8 +68,12 @@ public class WhatsAppFormatterService {
     }
 
     public String formatPostActionMenu() {
-        return "O que você gostaria de fazer agora?\n\n" + "1️⃣ Voltar ao Menu Principal\n"
-                + "2️⃣ Falar com um Atendente\n" + "3️⃣ Encerrar Atendimento";
+        return """
+                O que você gostaria de fazer agora?
+                
+                1️⃣ Voltar ao Menu Principal
+                2️⃣ Falar com um Atendente
+                3️⃣ Encerrar Atendimento""";
     }
 
     public String formatFaqTitulosEmAtraso(long count1_30, BigDecimal total1_30, long count31_60, BigDecimal total31_60,
