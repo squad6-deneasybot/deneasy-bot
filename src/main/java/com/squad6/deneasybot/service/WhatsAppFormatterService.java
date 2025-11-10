@@ -43,10 +43,13 @@ public class WhatsAppFormatterService {
         String startDateStr = (dto.startDate() != null) ? dto.startDate().format(DATE_FORMATTER) : "N/A";
         String endDateStr = (dto.endDate() != null) ? dto.endDate().format(DATE_FORMATTER) : "N/A";
 
-        return "📊 *Relatório " + dto.reportType() + "* \n\n" + "Empresa: " + dto.companyName() + "\n" + "Período: "
-                + startDateStr + " a " + endDateStr + "\n\n" + "🟢 Receita Operacional: R$ " + revenue + "\n"
-                + "🟠 Custos Variáveis: R$ " + costs + "\n" + "🔴 Despesas Fixas: R$ " + expenses + "\n"
-                + "🔵 *Resultado Operacional: R$ " + result + "*";
+        return "📊 *Relatório " + dto.reportType() + "* \n\n" +
+                "Empresa: " + dto.companyName() + "\n" +
+                "Período: " + startDateStr + " a " + endDateStr + "\n\n" +
+                "🟢 Receita Operacional: " + revenue + "\n" +
+                "🟠 Custos Variáveis: " + costs + "\n" +
+                "🔴 Despesas Fixas: " + expenses + "\n" +
+                "🔵 *Resultado Operacional: " + result + "*";
     }
 
     public String formatFaqProjecaoCaixa(BigDecimal saldoAtual, BigDecimal totalPagar, BigDecimal totalReceber,
