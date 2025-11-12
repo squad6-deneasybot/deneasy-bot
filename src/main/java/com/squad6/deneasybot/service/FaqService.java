@@ -292,4 +292,25 @@ public class FaqService {
 
         return formatterService.formatFaqTitulosAVencer(countPagar, totalPagar, countReceber, totalReceber, PROJECTION_DAYS);
     }
+
+    public String getFaqMenu() {
+        List<String> questions = List.of(
+                "1. Títulos a Vencer",
+                "2. Títulos Vencidos",
+                "3. Projeção de Caixa",
+                "4. Top Despesas",
+                "V. Voltar"
+        );
+        return formatterService.formatFaqMenu(questions);
+    }
+
+    public String getFaqAnswer(String option, String userPhone) {
+        return switch (option) {
+            case "1" -> getTitulosAVencer(userPhone);
+            case "2" -> getTitulosEmAtraso(userPhone);
+            case "3" -> getProjecaoDeCaixa(userPhone);
+            case "4" -> getTopDespesasPorCategoria(userPhone);
+            default -> throw new IllegalArgumentException("Opção inválida");
+        };
+    }
 }
