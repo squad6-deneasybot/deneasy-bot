@@ -55,7 +55,7 @@ public class MenuService {
                 return whatsAppFormatterService.formatSimpleReport(report);
 
             case "2":
-                return faqService.getProjecaoDeCaixa(userPhone);
+                return faqService.getFaqMenu();
 
             case "3":
                 chatStateService.clearAll(userPhone);
