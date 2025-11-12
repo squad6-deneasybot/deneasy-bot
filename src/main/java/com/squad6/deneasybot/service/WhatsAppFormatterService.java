@@ -33,6 +33,20 @@ public class WhatsAppFormatterService {
         return menu.toString();
     }
 
+    public String formatFaqMenu(List<String> questions) {
+        StringBuilder sb = new StringBuilder("*📋 FAQ - Perguntas Frequentes*\n\n");
+
+        for (int i = 0; i < questions.size(); i++) {
+            sb.append(i + 1)
+                    .append(". ")
+                    .append(questions.get(i))
+                    .append("\n");
+        }
+
+        sb.append("\nV. Voltar");
+        return sb.toString();
+    }
+
     public String formatSimpleReport(ReportSimpleDTO dto) {
 
         String revenue = formatCurrency(dto.operationalRevenue());
