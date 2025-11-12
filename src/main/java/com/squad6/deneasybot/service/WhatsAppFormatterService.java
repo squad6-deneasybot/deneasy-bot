@@ -30,6 +30,8 @@ public class WhatsAppFormatterService {
             menu.append("4️⃣ Gerenciar Funcionários\n");
         }
 
+        menu.append("5️⃣ Sugerir melhoria\n");
+
         return menu.toString();
     }
 
@@ -206,6 +208,16 @@ public class WhatsAppFormatterService {
                 1️⃣ Voltar ao menu de gerenciar funcionários
                 2️⃣ Voltar ao menu principal
                 3️⃣ Encerrar atendimento""";
+    }
+
+    public String formatWishlistPrompt() {
+        return "Entendido! Sua opinião é muito importante para nós. 💡\n\n" +
+                "Por favor, descreva em *uma única mensagem* o que você gostaria de ver " +
+                "no DeneasyBot que facilitaria seu trabalho:";
+    }
+
+    public String formatWishlistThanks() {
+        return "Obrigado! Sua sugestão foi registrada e será analisada pela nossa equipe. 👍";
     }
 
     private String formatCurrency(BigDecimal value) {
