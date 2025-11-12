@@ -65,8 +65,7 @@ public class MenuService {
 
             case "4":
                 if (profile == UserProfile.MANAGER) {
-
-                    return "STUB: Gerenciar funcionário (função disponível apenas para manager)";
+                    return whatsAppFormatterService.formatCrudMenu();
                 } else {
 
                     throw new IllegalArgumentException("Opção '4' inválida para o perfil EMPLOYEE.");

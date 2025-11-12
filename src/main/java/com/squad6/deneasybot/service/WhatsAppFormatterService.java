@@ -152,6 +152,62 @@ public class WhatsAppFormatterService {
         return sb.toString().trim();
     }
 
+    public String formatCrudMenu() {
+        return """
+                Gerenciamento de Funcionários:
+                
+                1️⃣ Listar todos
+                2️⃣ Adicionar novo
+                3️⃣ Atualizar um
+                4️⃣ Remover um
+                
+                V. Voltar ao menu""";
+    }
+
+    public String formatEmployeeList(List<UserDTO> employees) {
+        if (employees == null || employees.isEmpty()) {
+            return "Você ainda não possui funcionários cadastrados.";
+        }
+
+        StringBuilder sb = new StringBuilder("Aqui estão seus funcionários:\n");
+        for (UserDTO employee : employees) {
+            sb.append("\n• ").append(employee.getName()).append(" (").append(employee.getEmail()).append(")");
+        }
+        return sb.toString();
+    }
+
+    public String formatEmployeeAdded(UserDTO employee) {
+        return "✅ Funcionário *" + employee.getName() + "* adicionado com sucesso.";
+    }
+
+    public String formatEmployeeRemoved(String employeeName) {
+        return "🗑️ Funcionário *" + employeeName + "* removido com sucesso.";
+    }
+
+    public String formatEmployeeUpdateSelector(List<UserDTO> employees) {
+        if (employees == null || employees.isEmpty()) {
+            return "Você não possui funcionários para atualizar.";
+        }
+        return formatEmployeeList(employees) + "\n\nDigite o e-mail do funcionário que deseja atualizar (ou 'V' para voltar):";
+    }
+
+    public String formatEmployeeUpdateFieldMenu(UserDTO employee) {
+        return "O que você deseja atualizar para *" + employee.getName() + "*?\n\n" +
+                "1️⃣ Nome\n" +
+                "2️⃣ E-mail\n" +
+                "3️⃣ Telefone\n\n" +
+                "V. Cancelar";
+    }
+
+    public String formatCrudPostActionMenu() {
+        return """
+                O que você gostaria de fazer agora?
+                
+                1️⃣ Voltar ao menu de gerenciar funcionários
+                2️⃣ Voltar ao menu principal
+                3️⃣ Encerrar atendimento""";
+    }
+
     private String formatCurrency(BigDecimal value) {
         if (value == null) {
             value = BigDecimal.ZERO;
