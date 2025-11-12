@@ -29,12 +29,13 @@ public class WebhookOrchestratorService {
     private final WhatsAppService whatsAppService;
     private final WhatsAppFormatterService formatterService;
     private final UserRepository userRepository;
+    private final FeedbackService feedbackService;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
                                       MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
-                                      WhatsAppFormatterService formatterService, UserRepository userRepository) {
+                                      WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
@@ -46,6 +47,7 @@ public class WebhookOrchestratorService {
         this.whatsAppService = whatsAppService;
         this.formatterService = formatterService;
         this.userRepository = userRepository;
+        this.feedbackService = feedbackService;
     }
 
     @Async
@@ -119,6 +121,9 @@ public class WebhookOrchestratorService {
                         break;
                     case AWAITING_CRUD_POST_ACTION:
                         handleStateCrudPostAction(userPhone, messageText);
+                        break;
+                    case AWAITING_WISHLIST:
+                        handleStateAwaitingWishlist(userPhone, messageText);
                         break;
                 }
             } catch (Exception e) {
@@ -284,6 +289,8 @@ public class WebhookOrchestratorService {
             } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
 
+            } else if("5".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
             } else {
                 throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
             }
@@ -581,6 +588,17 @@ public class WebhookOrchestratorService {
                 whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudPostActionMenu());
                 break;
         }
+    }
+
+    private void handleStateAwaitingWishlist(String userPhone, String messageText) {
+
+        User user = userRepository.findByPhone(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
+
+        feedbackService.saveWishlist(user, messageText);
+        whatsAppService.sendMessage(userPhone, formatterService.formatWishlistThanks());
+        chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+        whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
     }
 
     private UserProfile getUserProfile(String userPhone) {
