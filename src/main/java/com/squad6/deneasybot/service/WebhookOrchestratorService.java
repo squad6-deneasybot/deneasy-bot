@@ -591,11 +591,19 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingWishlist(String userPhone, String messageText) {
-
+        final int MAX_WISHLIST_LENGTH = 500;
+        String trimmedMessage = messageText == null ? "" : messageText.trim();
+        if (trimmedMessage.isEmpty()) {
+            whatsAppService.sendMessage(userPhone, "Por favor, digite uma mensagem para sua sugestão ou desejo. A mensagem não pode estar vazia.");
+            return;
+        }
+        if (trimmedMessage.length() > MAX_WISHLIST_LENGTH) {
+            whatsAppService.sendMessage(userPhone, "Sua mensagem é muito longa. Por favor, limite sua sugestão a " + MAX_WISHLIST_LENGTH + " caracteres.");
+            return;
+        }
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
-
-        feedbackService.saveWishlist(user, messageText);
+        feedbackService.saveWishlist(user, trimmedMessage);
         whatsAppService.sendMessage(userPhone, formatterService.formatWishlistThanks());
         chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
         whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
