@@ -93,14 +93,14 @@ public class WebhookOrchestratorService {
                     case AWAITING_POST_ACTION:
                         handleStateAwaitingPostAction(userPhone, messageText);
                         break;
+                    case AWAITING_FAQ_CHOICE: // <-- Da branch FAQ
+                        handleStateAwaitingFaqChoice(userPhone, messageText);
+                        break;
                     case AWAITING_CRUD_MENU_CHOICE:
                         handleStateCrudMenuChoice(userPhone, messageText);
                         break;
                     case AWAITING_CRUD_ADD_NAME:
                         handleStateCrudAddName(userPhone, messageText);
-                        break;
-                    case AWAITING_FAQ_CHOICE:
-                        handleStateAwaitingFaqChoice(userPhone, messageText);
                         break;
                     case AWAITING_CRUD_ADD_EMAIL:
                         handleStateCrudAddEmail(userPhone, messageText);
@@ -147,6 +147,7 @@ public class WebhookOrchestratorService {
             }
         }
     }
+
 
     private void handleStateStart(String userPhone, String messageText) {
         try {
@@ -204,8 +205,8 @@ public class WebhookOrchestratorService {
 
     private void handleStateAwaitingEmail(String userPhone, String messageText) {
         CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class)
-            .orElseThrow(() -> new java.util.NoSuchElementException(
-                "Company data (temp_company_dto) missing for userPhone: " + userPhone));
+                .orElseThrow(() -> new java.util.NoSuchElementException(
+                        "Company data (temp_company_dto) missing for userPhone: " + userPhone));
         String email = messageText.trim();
 
         try {
@@ -286,6 +287,8 @@ public class WebhookOrchestratorService {
             } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
 
+            } else if ("5".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
             } else {
                 throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
             }
@@ -586,30 +589,29 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingFaqChoice(String userPhone, String messageText) {
-        //TODO para cada switch chamará uma função facservice
-        User profile = getUserByPhone(userPhone);
         String option = messageText.trim();
 
-        switch (option) {
-            case "1":
-                faqService.getTitulosAVencer(userPhone);
-                break;
-            case "2":
-                faqService.getTitulosEmAtraso(userPhone);
-                break;
-            case "3":
-                faqService.getProjecaoDeCaixa(userPhone);
-                break;
-            case "4":
-                faqService.getTopDespesasPorCategoria(userPhone);
-                break;
-            case "V":
-                whatsAppService.sendMessage(userPhone, formatterService.formatMenu(profile.getProfile()));
-                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
-                break;
-            default:
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudPostActionMenu());
-                break;
+        if ("V".equalsIgnoreCase(option)) {
+            UserProfile profile = getUserProfile(userPhone);
+            whatsAppService.sendMessage(userPhone, formatterService.formatMenu(profile));
+            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+            return;
+        }
+
+        try {
+            String answer = faqService.getFaqAnswer(option, userPhone);
+
+            whatsAppService.sendMessage(userPhone, answer);
+            chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+            whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
+
+        } catch (IllegalArgumentException e) {
+            logger.warn("Opção de FAQ inválida '{}' para usuário {}", option, userPhone);
+            whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + faqService.getFaqMenu());
+
+        } catch (Exception e) {
+            logger.error("Erro ao processar resposta da FAQ {} para {}: {}", option, userPhone, e.getMessage(), e);
+            whatsAppService.sendMessage(userPhone, "Desculpe, ocorreu um erro ao buscar essa informação. Por favor, tente novamente.\n\n" + faqService.getFaqMenu());
         }
     }
 
@@ -619,5 +621,4 @@ public class WebhookOrchestratorService {
 
         return user.getProfile();
     }
-
 }

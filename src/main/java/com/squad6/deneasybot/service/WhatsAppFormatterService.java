@@ -30,18 +30,7 @@ public class WhatsAppFormatterService {
             menu.append("4️⃣ Gerenciar Funcionários\n");
         }
 
-        return menu.toString();
-    }
-
-    public String formatFaqMenu(List<String> questions) {
-        StringBuilder menu = new StringBuilder();
-        menu.append("Escolha um relatório:\n\n");
-        menu.append("1️⃣ Títulos a Vencer\n");
-        menu.append("2️⃣ Títulos Vencidos\n");
-        menu.append("3️⃣ Projeção de Caixa\n");
-        menu.append("4️⃣ Top despesas\n\n");
-
-        menu.append("V. Voltar");
+        menu.append("5️⃣ Sugerir Melhoria\n");
 
         return menu.toString();
     }
@@ -219,6 +208,27 @@ public class WhatsAppFormatterService {
                 1️⃣ Voltar ao menu de gerenciar funcionários
                 2️⃣ Voltar ao menu principal
                 3️⃣ Encerrar atendimento""";
+    }
+
+    public String formatFaqMenu() {
+        StringBuilder menu = new StringBuilder();
+        menu.append("Escolha uma pergunta:\n\n");
+        menu.append("1️⃣ Títulos a Vencer\n");
+        menu.append("2️⃣ Títulos Vencidos\n");
+        menu.append("3️⃣ Projeção de Caixa\n");
+        menu.append("4️⃣ Top despesas\n\n");
+        menu.append("V. Voltar ao Menu Principal");
+        return menu.toString();
+    }
+
+    public String formatWishlistPrompt() {
+        return "Entendido! Sua opinião é muito importante para nós. 💡\n\n" +
+                "Por favor, descreva em *uma única mensagem* o que você gostaria de ver " +
+                "no DeneasyBot que facilitaria seu trabalho:";
+    }
+
+    public String formatWishlistThanks() {
+        return "Obrigado! Sua sugestão foi registrada e será analisada pela nossa equipe. 👍";
     }
 
     private String formatCurrency(BigDecimal value) {
