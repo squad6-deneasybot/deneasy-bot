@@ -30,7 +30,7 @@ public class WhatsAppFormatterService {
             menu.append("4️⃣ Gerenciar Funcionários\n");
         }
 
-        menu.append("5️⃣ Sugerir melhoria\n");
+        menu.append("5️⃣ Sugerir Melhoria\n");
 
         return menu.toString();
     }
@@ -210,10 +210,24 @@ public class WhatsAppFormatterService {
                 3️⃣ Encerrar atendimento""";
     }
 
+    public String formatFaqMenu() {
+        return """
+                Escolha uma pergunta:
+                
+                1️⃣ Títulos a Vencer
+                2️⃣ Títulos Vencidos
+                3️⃣ Projeção de Caixa
+                4️⃣ Top despesas
+                
+                V. Voltar ao Menu Principal""";
+    }
+
     public String formatWishlistPrompt() {
-        return "Entendido! Sua opinião é muito importante para nós. 💡\n\n" +
-                "Por favor, descreva em *uma única mensagem* o que você gostaria de ver " +
-                "no DeneasyBot que facilitaria seu trabalho:";
+        return """
+                Entendido! Sua opinião é muito importante para nós. 💡
+                
+                Por favor, descreva em *uma única mensagem* o que você gostaria de ver \
+                no DeneasyBot que facilitaria seu trabalho:""";
     }
 
     public String formatWishlistThanks() {

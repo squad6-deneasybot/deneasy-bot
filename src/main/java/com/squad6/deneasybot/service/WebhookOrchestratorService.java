@@ -29,13 +29,12 @@ public class WebhookOrchestratorService {
     private final WhatsAppService whatsAppService;
     private final WhatsAppFormatterService formatterService;
     private final UserRepository userRepository;
-    private final FeedbackService feedbackService;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
                                       MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
-                                      WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService) {
+                                      WhatsAppFormatterService formatterService, UserRepository userRepository) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
@@ -47,7 +46,6 @@ public class WebhookOrchestratorService {
         this.whatsAppService = whatsAppService;
         this.formatterService = formatterService;
         this.userRepository = userRepository;
-        this.feedbackService = feedbackService;
     }
 
     @Async
@@ -95,6 +93,9 @@ public class WebhookOrchestratorService {
                     case AWAITING_POST_ACTION:
                         handleStateAwaitingPostAction(userPhone, messageText);
                         break;
+                    case AWAITING_FAQ_CHOICE: // <-- Da branch FAQ
+                        handleStateAwaitingFaqChoice(userPhone, messageText);
+                        break;
                     case AWAITING_CRUD_MENU_CHOICE:
                         handleStateCrudMenuChoice(userPhone, messageText);
                         break;
@@ -121,9 +122,6 @@ public class WebhookOrchestratorService {
                         break;
                     case AWAITING_CRUD_POST_ACTION:
                         handleStateCrudPostAction(userPhone, messageText);
-                        break;
-                    case AWAITING_WISHLIST:
-                        handleStateAwaitingWishlist(userPhone, messageText);
                         break;
                 }
             } catch (Exception e) {
@@ -207,8 +205,8 @@ public class WebhookOrchestratorService {
 
     private void handleStateAwaitingEmail(String userPhone, String messageText) {
         CompanyDTO companyDTO = chatStateService.getData(userPhone, "temp_company_dto", CompanyDTO.class)
-            .orElseThrow(() -> new java.util.NoSuchElementException(
-                "Company data (temp_company_dto) missing for userPhone: " + userPhone));
+                .orElseThrow(() -> new java.util.NoSuchElementException(
+                        "Company data (temp_company_dto) missing for userPhone: " + userPhone));
         String email = messageText.trim();
 
         try {
@@ -590,23 +588,31 @@ public class WebhookOrchestratorService {
         }
     }
 
-    private void handleStateAwaitingWishlist(String userPhone, String messageText) {
-        final int MAX_WISHLIST_LENGTH = 500;
-        String trimmedMessage = messageText == null ? "" : messageText.trim();
-        if (trimmedMessage.isEmpty()) {
-            whatsAppService.sendMessage(userPhone, "Por favor, digite uma mensagem para sua sugestão ou desejo. A mensagem não pode estar vazia.");
+    private void handleStateAwaitingFaqChoice(String userPhone, String messageText) {
+        String option = messageText.trim();
+
+        if ("V".equalsIgnoreCase(option)) {
+            UserProfile profile = getUserProfile(userPhone);
+            whatsAppService.sendMessage(userPhone, formatterService.formatMenu(profile));
+            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
             return;
         }
-        if (trimmedMessage.length() > MAX_WISHLIST_LENGTH) {
-            whatsAppService.sendMessage(userPhone, "Sua mensagem é muito longa. Por favor, limite sua sugestão a " + MAX_WISHLIST_LENGTH + " caracteres.");
-            return;
+
+        try {
+            String answer = faqService.getFaqAnswer(option, userPhone);
+
+            whatsAppService.sendMessage(userPhone, answer);
+            chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+            whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
+
+        } catch (IllegalArgumentException e) {
+            logger.warn("Opção de FAQ inválida '{}' para usuário {}", option, userPhone);
+            whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + faqService.getFaqMenu());
+
+        } catch (Exception e) {
+            logger.error("Erro ao processar resposta da FAQ {} para {}: {}", option, userPhone, e.getMessage(), e);
+            whatsAppService.sendMessage(userPhone, "Desculpe, ocorreu um erro ao buscar essa informação. Por favor, tente novamente.\n\n" + faqService.getFaqMenu());
         }
-        User user = userRepository.findByPhone(userPhone)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
-        feedbackService.saveWishlist(user, trimmedMessage);
-        whatsAppService.sendMessage(userPhone, formatterService.formatWishlistThanks());
-        chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
-        whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
     }
 
     private UserProfile getUserProfile(String userPhone) {

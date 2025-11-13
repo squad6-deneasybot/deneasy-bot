@@ -55,13 +55,16 @@ public class MenuService {
                 return whatsAppFormatterService.formatSimpleReport(report);
 
             case "2":
-                return faqService.getProjecaoDeCaixa(userPhone);
+                return faqService.getFaqMenu();
 
             case "3":
                 chatStateService.clearAll(userPhone);
-                return "[Finalizando]Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número: \n\n" +
-                        "*+55 79 99999-9999*\n\n" +
-                        "Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋";
+                return """
+                        Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número:\s
+                        
+                        *+55 79 99999-9999*
+                        
+                        Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋""";
 
             case "4":
                 if (profile == UserProfile.MANAGER) {

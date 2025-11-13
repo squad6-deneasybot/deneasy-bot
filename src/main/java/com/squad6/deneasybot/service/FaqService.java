@@ -18,7 +18,6 @@ import com.squad6.deneasybot.client.OmieErpClient;
 import com.squad6.deneasybot.exception.ResourceNotFoundException;
 import com.squad6.deneasybot.model.Company;
 import com.squad6.deneasybot.model.CategoryStat;
-import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
 import com.squad6.deneasybot.model.OmieDTO.MovementHeader;
 import com.squad6.deneasybot.model.OmieDTO.MovementSummary;
@@ -31,7 +30,7 @@ public class FaqService {
     private static final Logger logger = LoggerFactory.getLogger(FaqService.class);
 
     private static final int PROJECTION_DAYS = 7;
-    private static final Set<String> STATUS_FECHADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
+    private static final Set<String> STATUS_LIQUIDADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
     private static final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
     private static final String GRUPO_CONTA_A_RECEBER = "CONTA_A_RECEBER";
 
@@ -52,25 +51,36 @@ public class FaqService {
         this.categoryCacheService = categoryCacheService;
     }
 
+    public String getFaqMenu() {
+        return formatterService.formatFaqMenu();
+    }
+
     @Transactional(readOnly = true)
-    public String getProjecaoDeCaixa(String userPhone) {
-        logger.info("Iniciando projeção de caixa para {}", userPhone);
+    public String getFaqAnswer(String option, String userPhone) {
 
-        User user = userRepository.findByPhone(userPhone).orElseThrow(() -> {
-            logger.error("Usuário {} não encontrado no banco para projeção.", userPhone);
-            return new RuntimeException("Usuário não encontrado para projeção.");
-        });
-
+        User user = userRepository.findByPhone(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
         Company company = user.getCompany();
         String appKey = company.getAppKey();
         String appSecret = company.getAppSecret();
+
+        return switch (option.trim()) {
+            case "1" -> getTitulosAVencer(appKey, appSecret);
+            case "2" -> getTitulosEmAtraso(appKey, appSecret);
+            case "3" -> getProjecaoDeCaixa(appKey, appSecret);
+            case "4" -> getTopDespesasPorCategoria(appKey, appSecret);
+            default -> throw new IllegalArgumentException("Opção de FAQ inválida: " + option);
+        };
+    }
+
+    private String getProjecaoDeCaixa(String appKey, String appSecret) {
+        logger.info("Iniciando projeção de caixa...");
 
         BigDecimal saldoAtual = financialAggregatorService.getCurrentBalance(appKey, appSecret);
 
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusDays(PROJECTION_DAYS);
 
-        logger.info("Buscando movimentos futuros de {} até {} para {}", startDate, endDate, userPhone);
         List<MovementDetail> movimentosFuturos = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret,
                 startDate, endDate);
 
@@ -79,22 +89,25 @@ public class FaqService {
 
         for (MovementDetail movement : movimentosFuturos) {
             MovementHeader header = movement.header();
-            if (header == null || header.nValorTitulo() == null || header.cGrupo() == null) {
+            MovementSummary summary = movement.summary();
+
+            if (header == null || summary == null || header.cGrupo() == null ||
+                    header.cStatus() == null || summary.nValAberto() == null) {
                 continue;
             }
 
-            boolean emAberto = header.dDtPagamento() == null || header.dDtPagamento().isBlank();
+            if (!STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
 
-            if (emAberto) {
-                if ("CONTA_A_RECEBER".equals(header.cGrupo())) {
-                    totalReceber = totalReceber.add(header.nValorTitulo());
-                } else if ("CONTA_A_PAGAR".equals(header.cGrupo())) {
-                    totalPagar = totalPagar.add(header.nValorTitulo());
+                if (GRUPO_CONTA_A_RECEBER.equals(header.cGrupo())) {
+                    totalReceber = totalReceber.add(summary.nValAberto());
+                } else if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
+                    totalPagar = totalPagar.add(summary.nValAberto());
                 }
             }
         }
-        logger.info("Cálculo da projeção ({} dias) para {}: SaldoAtual={}, Pagar={}, Receber={}", PROJECTION_DAYS,
-                userPhone, saldoAtual, totalPagar, totalReceber);
+
+        logger.info("Cálculo da projeção ({} dias): SaldoAtual={}, Pagar={}, Receber={}", PROJECTION_DAYS,
+                saldoAtual, totalPagar, totalReceber);
 
         BigDecimal saldoPrevisto = saldoAtual.add(totalReceber).subtract(totalPagar);
 
@@ -102,24 +115,13 @@ public class FaqService {
                 PROJECTION_DAYS);
     }
 
-    @Transactional(readOnly = true)
-    public String getTitulosEmAtraso(String userPhone) {
-        logger.info("Iniciando análise de títulos em atraso para {}", userPhone);
-
-        User user = userRepository.findByPhone(userPhone).orElseThrow(() -> {
-            logger.error("Usuário {} não encontrado no banco para análise de títulos em atraso.", userPhone);
-            return new RuntimeException("Usuário não encontrado para análise de títulos em atraso.");
-        });
-
-        Company company = user.getCompany();
-        String appKey = company.getAppKey();
-        String appSecret = company.getAppSecret();
+    private String getTitulosEmAtraso(String appKey, String appSecret) {
+        logger.info("Iniciando análise de títulos em atraso...");
 
         LocalDate today = LocalDate.now();
         LocalDate startDate = today.minusYears(2);
         LocalDate endDate = today.minusDays(1);
 
-        logger.info("Buscando movimentos de {} a {} para {}", startDate, endDate, userPhone);
         List<MovementDetail> movimentos = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret,
                 startDate, endDate);
 
@@ -132,12 +134,9 @@ public class FaqService {
         long count90_plus = 0;
         BigDecimal total90_plus = BigDecimal.ZERO;
 
-        final List<String> statusNaoEmAberto = List.of("PAGO", "LIQUIDADO", "CANCELADO");
-        final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
-
         for (MovementDetail movement : movimentos) {
             MovementHeader header = movement.header();
-            OmieDTO.MovementSummary summary = movement.summary();
+            MovementSummary summary = movement.summary();
 
             if (header == null || summary == null || header.cGrupo() == null || header.cStatus() == null
                     || header.dDtVenc() == null || summary.nValAberto() == null) {
@@ -145,61 +144,45 @@ public class FaqService {
                 continue;
             }
 
-            if (!GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
-                continue;
-            }
-
-            if (statusNaoEmAberto.contains(header.cStatus())) {
+            if (!GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) || STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
                 continue;
             }
 
             try {
                 LocalDate vencimento = LocalDate.parse(header.dDtVenc(), OmieErpClient.OMIE_DATE_FORMATTER);
 
-                if (!vencimento.isBefore(today)) {
-                    continue;
-                }
+                if (vencimento.isBefore(today)) {
+                    long daysOverdue = ChronoUnit.DAYS.between(vencimento, today);
+                    BigDecimal valor = summary.nValAberto();
 
-                long daysOverdue = ChronoUnit.DAYS.between(vencimento, today);
-                BigDecimal valor = summary.nValAberto();
-
-                if (daysOverdue >= 1 && daysOverdue <= 30) {
-                    count1_30++;
-                    total1_30 = total1_30.add(valor);
-                } else if (daysOverdue >= 31 && daysOverdue <= 60) {
-                    count31_60++;
-                    total31_60 = total31_60.add(valor);
-                } else if (daysOverdue >= 61 && daysOverdue <= 90) {
-                    count61_90++;
-                    total61_90 = total61_90.add(valor);
-                } else if (daysOverdue > 90) {
-                    count90_plus++;
-                    total90_plus = total90_plus.add(valor);
+                    if (daysOverdue <= 30) {
+                        count1_30++;
+                        total1_30 = total1_30.add(valor);
+                    } else if (daysOverdue <= 60) {
+                        count31_60++;
+                        total31_60 = total31_60.add(valor);
+                    } else if (daysOverdue <= 90) {
+                        count61_90++;
+                        total61_90 = total61_90.add(valor);
+                    } else {
+                        count90_plus++;
+                        total90_plus = total90_plus.add(valor);
+                    }
                 }
             } catch (Exception e) {
-                logger.error("Erro ao processar data de vencimento: {} para o usuário {}", header.dDtVenc(), userPhone,
-                        e);
+                logger.error("Erro ao processar data de vencimento: {}", header.dDtVenc(), e);
             }
         }
 
-        logger.info("Agregação concluída para {}. Títulos em atraso: 1-30={}, 31-60={}, 61-90={}, >90={}", userPhone,
+        logger.info("Agregação concluída. Títulos em atraso: 1-30={}, 31-60={}, 61-90={}, >90={}",
                 count1_30, count31_60, count61_90, count90_plus);
 
         return formatterService.formatFaqTitulosEmAtraso(count1_30, total1_30, count31_60, total31_60, count61_90,
                 total61_90, count90_plus, total90_plus);
     }
 
-    @Transactional(readOnly = true)
-    public String getTopDespesasPorCategoria(String userPhone) {
-        logger.info("Iniciando busca 'Top 3 Despesas' para {}", userPhone);
-
-        User user = userRepository.findByPhone(userPhone).orElseThrow(() -> {
-            logger.error("Usuário {} não encontrado no banco para Top Despesas.", userPhone);
-            return new RuntimeException("Usuário não encontrado para Top Despesas.");
-        });
-        Company company = user.getCompany();
-        String appKey = company.getAppKey();
-        String appSecret = company.getAppSecret();
+    private String getTopDespesasPorCategoria(String appKey, String appSecret) {
+        logger.info("Iniciando busca 'Top 3 Despesas'...");
 
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(30);
@@ -207,7 +190,7 @@ public class FaqService {
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate,
                 endDate);
 
-        final List<String> statusPago = List.of("PAGO", "LIQUIDADO");
+        final Set<String> statusPago = Set.of("PAGO", "LIQUIDADO");
         Map<String, BigDecimal> aggregationMap = new HashMap<>();
 
         for (MovementDetail movement : movements) {
@@ -219,7 +202,7 @@ public class FaqService {
                 continue;
             }
 
-            if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) && statusPago.contains(header.cStatus())) {
+            if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) && statusPago.contains(header.cStatus().toUpperCase())) {
                 String categoryCode = header.cCodCateg();
                 BigDecimal value = summary.nValPago();
                 aggregationMap.merge(categoryCode, value, BigDecimal::add);
@@ -246,18 +229,13 @@ public class FaqService {
             topCategories.add(new CategoryStat(categoryName, totalValue));
         }
 
-        logger.info("Top despesas para {} ({}): {}", userPhone, sortedList.size(), topCategories);
+        logger.info("Top despesas ({}): {}", sortedList.size(), topCategories);
 
         return formatterService.formatFaqTopCategorias(topCategories);
     }
 
-    @Transactional(readOnly = true)
-    public String getTitulosAVencer(String userPhone) {
-        User user = userRepository.findByPhone(userPhone)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
-        Company company = user.getCompany();
-        String appKey = company.getAppKey();
-        String appSecret = company.getAppSecret();
+    private String getTitulosAVencer(String appKey, String appSecret) {
+        logger.info("Iniciando busca 'Títulos a Vencer'...");
 
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = LocalDate.now().plusDays(PROJECTION_DAYS);
@@ -273,11 +251,12 @@ public class FaqService {
             MovementHeader header = movement.header();
             MovementSummary summary = movement.summary();
 
-            if (header == null || summary == null || header.cGrupo() == null || header.cStatus() == null || header.dDtVenc() == null || summary.nValAberto() == null) {
+            if (header == null || summary == null || header.cGrupo() == null ||
+                    header.cStatus() == null || summary.nValAberto() == null) {
                 continue;
             }
 
-            if (!STATUS_FECHADO.contains(header.cStatus().toUpperCase())) {
+            if (!STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
 
                 if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
                     totalPagar = totalPagar.add(summary.nValAberto());
@@ -289,6 +268,8 @@ public class FaqService {
                 }
             }
         }
+
+        logger.info("Títulos a vencer ({} dias): Pagar={}, Receber={}", PROJECTION_DAYS, countPagar, countReceber);
 
         return formatterService.formatFaqTitulosAVencer(countPagar, totalPagar, countReceber, totalReceber, PROJECTION_DAYS);
     }
