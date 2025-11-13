@@ -70,8 +70,6 @@ public class MenuService {
 
                     throw new IllegalArgumentException("Opção '4' inválida para o perfil EMPLOYEE.");
                 }
-            case "5":
-                return whatsAppFormatterService.formatWishlistPrompt();
 
             default:
                 throw new IllegalArgumentException("Opção '" + messageText + "' inválida.");
