@@ -49,6 +49,18 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generateSessionToken(String subject) {
+        Date now = new Date();
+        Date expiry = new Date(now.getTime() + SESSION_TOKEN_EXPIRATION);
+
+        return Jwts.builder()
+                .setSubject(subject)
+                .setIssuedAt(now)
+                .setExpiration(expiry)
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public String extractVerificationCode(String token) {
         return parseClaims(token).get("code", String.class);
     }

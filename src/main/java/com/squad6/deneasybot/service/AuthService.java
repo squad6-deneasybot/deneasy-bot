@@ -3,8 +3,11 @@ package com.squad6.deneasybot.service;
 import com.squad6.deneasybot.exception.UserNotFoundByPhoneException;
 import com.squad6.deneasybot.util.CodeGeneratorUtil;
 import org.springframework.stereotype.Service;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.squad6.deneasybot.client.OmieErpClient;
+import com.squad6.deneasybot.model.SuperAdmin;
+import com.squad6.deneasybot.repository.SuperAdminRepository;
 import com.squad6.deneasybot.exception.InvalidCredentialsException;
 import com.squad6.deneasybot.exception.InvalidKeysInErpException;
 import com.squad6.deneasybot.exception.UserNotFoundInErpException;
@@ -21,13 +24,31 @@ public class AuthService {
     private final OmieErpClient omieErpClient;
     private final EmailService emailService;
     private final CodeGeneratorUtil codeGeneratorUtil;
+    private final SuperAdminRepository superAdminRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient, EmailService emailService, CodeGeneratorUtil codeGeneratorUtil) {
+    public AuthService(UserRepository userRepository, JwtUtil jwtUtil, OmieErpClient omieErpClient, EmailService emailService, CodeGeneratorUtil codeGeneratorUtil,
+                       SuperAdminRepository superAdminRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.jwtUtil = jwtUtil;
         this.omieErpClient = omieErpClient;
         this.emailService = emailService;
         this.codeGeneratorUtil = codeGeneratorUtil;
+        this.superAdminRepository = superAdminRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional(readOnly = true)
+    public AdminAuthResponseDTO loginAdmin(String email, String password) {
+        SuperAdmin admin = superAdminRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidCredentialsException("E-mail ou senha inválidos."));
+
+        if (!passwordEncoder.matches(password, admin.getPasswordHash())) {
+            throw new InvalidCredentialsException("E-mail ou senha inválidos.");
+        }
+
+        String jwt = jwtUtil.generateSessionToken(admin.getEmail());
+        return new AdminAuthResponseDTO(admin.getId(), admin.getName(), admin.getEmail(), jwt);
     }
 
     public void logout(String token) {
