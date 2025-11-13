@@ -30,7 +30,7 @@ public class FaqService {
     private static final Logger logger = LoggerFactory.getLogger(FaqService.class);
 
     private static final int PROJECTION_DAYS = 7;
-    private static final Set<String> STATUS_LIQUIDADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
+    private static final Set<String> STATUS_FECHADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
     private static final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
     private static final String GRUPO_CONTA_A_RECEBER = "CONTA_A_RECEBER";
 
@@ -96,7 +96,7 @@ public class FaqService {
                 continue;
             }
 
-            if (!STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
+            if (!STATUS_FECHADO.contains(header.cStatus().toUpperCase())) {
 
                 if (GRUPO_CONTA_A_RECEBER.equals(header.cGrupo())) {
                     totalReceber = totalReceber.add(summary.nValAberto());
@@ -144,7 +144,7 @@ public class FaqService {
                 continue;
             }
 
-            if (!GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) || STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
+            if (!GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) || STATUS_FECHADO.contains(header.cStatus().toUpperCase())) {
                 continue;
             }
 
@@ -256,7 +256,7 @@ public class FaqService {
                 continue;
             }
 
-            if (!STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
+            if (!STATUS_FECHADO.contains(header.cStatus().toUpperCase())) {
 
                 if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
                     totalPagar = totalPagar.add(summary.nValAberto());

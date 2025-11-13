@@ -21,7 +21,6 @@ public class WebhookOrchestratorService {
     private final CompanyService companyService;
     private final UserService userService;
     private final MenuService menuService;
-    private final ReportService reportService;
     private final FaqService faqService;
 
     private final ChatStateService chatStateService;
@@ -29,23 +28,24 @@ public class WebhookOrchestratorService {
     private final WhatsAppService whatsAppService;
     private final WhatsAppFormatterService formatterService;
     private final UserRepository userRepository;
+    private final FeedbackService feedbackService;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
                                       MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
-                                      WhatsAppFormatterService formatterService, UserRepository userRepository) {
+                                      WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
         this.menuService = menuService;
-        this.reportService = reportService;
         this.faqService = faqService;
         this.chatStateService = chatStateService;
         this.jwtUtil = jwtUtil;
         this.whatsAppService = whatsAppService;
         this.formatterService = formatterService;
         this.userRepository = userRepository;
+        this.feedbackService = feedbackService;
     }
 
     @Async
@@ -93,7 +93,10 @@ public class WebhookOrchestratorService {
                     case AWAITING_POST_ACTION:
                         handleStateAwaitingPostAction(userPhone, messageText);
                         break;
-                    case AWAITING_FAQ_CHOICE: // <-- Da branch FAQ
+                    case AWAITING_WISHLIST:
+                        handleStateAwaitingWishlist(userPhone, messageText);
+                        break;
+                    case AWAITING_FAQ_CHOICE:
                         handleStateAwaitingFaqChoice(userPhone, messageText);
                         break;
                     case AWAITING_CRUD_MENU_CHOICE:
@@ -314,9 +317,12 @@ public class WebhookOrchestratorService {
 
             case "2":
                 chatStateService.clearAll(userPhone);
-                String humanContactMessage = "Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número: \n\n" +
-                        "*+55 79 99999-9999*\n\n" +
-                        "Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋";
+                String humanContactMessage = """
+                        Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número:\s
+                        
+                        *+55 79 99999-9999*
+                        
+                        Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋""";
                 whatsAppService.sendMessage(userPhone, humanContactMessage);
                 break;
 
@@ -388,9 +394,7 @@ public class WebhookOrchestratorService {
                 whatsAppService.sendMessage(userPhone, formatterService.formatMenu(manager.getProfile()));
                 chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
             }
-            default -> {
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudMenu());
-            }
+            default -> whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudMenu());
         }
     }
 
@@ -586,6 +590,25 @@ public class WebhookOrchestratorService {
                 whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudPostActionMenu());
                 break;
         }
+    }
+
+    private void handleStateAwaitingWishlist(String userPhone, String messageText) {
+        final int MAX_WISHLIST_LENGTH = 500;
+        String trimmedMessage = messageText == null ? "" : messageText.trim();
+        if (trimmedMessage.isEmpty()) {
+            whatsAppService.sendMessage(userPhone, "Por favor, digite uma mensagem para sua sugestão ou desejo. A mensagem não pode estar vazia.");
+            return;
+        }
+        if (trimmedMessage.length() > MAX_WISHLIST_LENGTH) {
+            whatsAppService.sendMessage(userPhone, "Sua mensagem é muito longa. Por favor, limite sua sugestão a " + MAX_WISHLIST_LENGTH + " caracteres.");
+            return;
+        }
+        User user = userRepository.findByPhone(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
+        feedbackService.saveWishlist(user, trimmedMessage);
+        whatsAppService.sendMessage(userPhone, formatterService.formatWishlistThanks());
+        chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+        whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
     }
 
     private void handleStateAwaitingFaqChoice(String userPhone, String messageText) {
