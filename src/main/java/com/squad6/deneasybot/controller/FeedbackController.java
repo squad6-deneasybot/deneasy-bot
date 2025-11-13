@@ -1,7 +1,6 @@
 package com.squad6.deneasybot.controller;
 
-import com.squad6.deneasybot.model.User;
-import com.squad6.deneasybot.model.WishlistDTO;
+import com.squad6.deneasybot.model.*;
 import com.squad6.deneasybot.service.AuthService;
 import com.squad6.deneasybot.service.FeedbackService;
 import org.springframework.http.HttpStatus;
@@ -22,6 +21,7 @@ public class FeedbackController {
         this.feedbackService = feedbackService;
         this.authService = authService;
     }
+
     @PostMapping("/wishlist")
     public ResponseEntity<Void> createWishlist(@RequestBody Map<String, String> payload,
                                                @RequestHeader("Authorization") String authHeader) {
@@ -32,8 +32,23 @@ public class FeedbackController {
     }
     @GetMapping("/wishlist")
     public ResponseEntity<List<WishlistDTO>> getWishlist() {
-
         return ResponseEntity.ok(feedbackService.getAllWishlistItems());
+    }
+
+
+    @GetMapping("/evaluation")
+    public ResponseEntity<List<EvaluationDTO>> getAllEvaluations(@RequestHeader("Authorization") String authHeader) {
+        User manager = getAuthenticatedUser(authHeader);
+        List<EvaluationDTO> evaluations = feedbackService.getAllEvaluations(manager);
+        return ResponseEntity.ok(evaluations);
+    }
+
+    @PostMapping("/evaluation")
+    public ResponseEntity<EvaluationDTO> createEvaluation(@RequestBody EvaluationRequestDTO request,
+                                                          @RequestHeader("Authorization") String authHeader) {
+        User user = getAuthenticatedUser(authHeader);
+        Evaluation evaluation = feedbackService.saveEvaluation(user, request.content(), request.rating());
+        return new ResponseEntity<>(new EvaluationDTO(evaluation), HttpStatus.CREATED);
     }
 
     private String extractToken(String authHeader) {
@@ -42,5 +57,10 @@ public class FeedbackController {
                     "Cabeçalho de autorização ausente ou mal formatado.");
         }
         return authHeader.substring(7);
+    }
+
+    private User getAuthenticatedUser(String authHeader) {
+        String token = extractToken(authHeader);
+        return authService.findUserByToken(token);
     }
 }
