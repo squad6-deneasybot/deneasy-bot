@@ -29,12 +29,13 @@ public class WebhookOrchestratorService {
     private final WhatsAppService whatsAppService;
     private final WhatsAppFormatterService formatterService;
     private final UserRepository userRepository;
+    private final FeedbackService feedbackService;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
                                       MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
-                                      WhatsAppFormatterService formatterService, UserRepository userRepository) {
+                                      WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
@@ -46,6 +47,7 @@ public class WebhookOrchestratorService {
         this.whatsAppService = whatsAppService;
         this.formatterService = formatterService;
         this.userRepository = userRepository;
+        this.feedbackService = feedbackService;
     }
 
     @Async
@@ -122,6 +124,9 @@ public class WebhookOrchestratorService {
                         break;
                     case AWAITING_CRUD_POST_ACTION:
                         handleStateCrudPostAction(userPhone, messageText);
+                        break;
+                    case AWAITING_WISHLIST:
+                        handleStateAwaitingWishlist(userPhone, messageText);
                         break;
                 }
             } catch (Exception e) {
@@ -286,6 +291,8 @@ public class WebhookOrchestratorService {
             } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
 
+            } else if ("5".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
             } else {
                 throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
             }
@@ -586,7 +593,6 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAwaitingFaqChoice(String userPhone, String messageText) {
-        //TODO para cada switch chamará uma função facservice
         User profile = getUserByPhone(userPhone);
         String option = messageText.trim();
 
@@ -610,7 +616,25 @@ public class WebhookOrchestratorService {
             default:
                 whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudPostActionMenu());
                 break;
+    }
+      
+    private void handleStateAwaitingWishlist(String userPhone, String messageText) {
+        final int MAX_WISHLIST_LENGTH = 500;
+        String trimmedMessage = messageText == null ? "" : messageText.trim();
+        if (trimmedMessage.isEmpty()) {
+            whatsAppService.sendMessage(userPhone, "Por favor, digite uma mensagem para sua sugestão ou desejo. A mensagem não pode estar vazia.");
+            return;
         }
+        if (trimmedMessage.length() > MAX_WISHLIST_LENGTH) {
+            whatsAppService.sendMessage(userPhone, "Sua mensagem é muito longa. Por favor, limite sua sugestão a " + MAX_WISHLIST_LENGTH + " caracteres.");
+            return;
+        }
+        User user = userRepository.findByPhone(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
+        feedbackService.saveWishlist(user, trimmedMessage);
+        whatsAppService.sendMessage(userPhone, formatterService.formatWishlistThanks());
+        chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+        whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
     }
 
     private UserProfile getUserProfile(String userPhone) {
