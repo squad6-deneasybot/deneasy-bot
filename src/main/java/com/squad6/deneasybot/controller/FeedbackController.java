@@ -1,9 +1,6 @@
 package com.squad6.deneasybot.controller;
 
-import com.squad6.deneasybot.model.EvaluationDTO;
-import com.squad6.deneasybot.model.EvaluationRequestDTO;
-import com.squad6.deneasybot.model.User;
-import com.squad6.deneasybot.model.WishlistDTO;
+import com.squad6.deneasybot.model.*;
 import com.squad6.deneasybot.service.AuthService;
 import com.squad6.deneasybot.service.FeedbackService;
 import org.springframework.http.HttpStatus;
