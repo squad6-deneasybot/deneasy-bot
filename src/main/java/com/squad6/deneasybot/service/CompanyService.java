@@ -59,6 +59,21 @@ public class CompanyService {
         Company updatedCompany = companyRepository.save(company);
         return new CompanyDTO(updatedCompany);
     }
+    @Transactional
+    public void deleteCompany(Long id) {
+        logger.warn("Tentativa de deletar empresa ID {}", id);
+
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
+
+        try {
+            companyRepository.delete(company);
+            logger.info("Empresa ID {} deletada com sucesso.", id);
+        } catch (Exception e) {
+            logger.error("Erro ao deletar empresa ID {}, {}", id, e.getMessage());
+            throw new DataIntegrityException("Não foi possível deletar a empresa.");
+        }
+    }
 
     @Transactional(readOnly = true)
     public List<CompanyDTO> getAllCompanies() {
