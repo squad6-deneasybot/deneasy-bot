@@ -235,7 +235,7 @@ public class WhatsAppFormatterService {
     }
 
     public String formatFeedbackTextPrompt() {
-        return "Antes de encerrar, o que você achou deste atendimento? (Sua opinião é muito importante)";
+        return "Antes de encerrar, o que você achou deste atendimento?";
     }
 
     public String formatFeedbackRatingPrompt() {
