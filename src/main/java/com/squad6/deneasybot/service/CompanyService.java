@@ -39,6 +39,42 @@ public class CompanyService {
         return companyRepository.save(company);
     }
 
+    @Transactional
+    public CompanyDTO updateCompany(Long id, CompanyDTO companyDetails) {
+        logger.info("Atualizando empresa ID {} com novos dados.", companyDetails.getCompanyName());
+
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
+
+        companyRepository.findByAppKey(companyDetails.getAppKey())
+                .filter(existingCompany -> !existingCompany.getId().equals(id))
+                .ifPresent(existingCompany -> {
+                    throw new DataIntegrityException("Já existe uma empresa cadastrada com esta App Key.");
+                });
+
+        company.setName(companyDetails.getCompanyName());
+        company.setAppKey(companyDetails.getAppKey());
+        company.setAppSecret(companyDetails.getAppSecret());
+
+        Company updatedCompany = companyRepository.save(company);
+        return new CompanyDTO(updatedCompany);
+    }
+    @Transactional
+    public void deleteCompany(Long id) {
+        logger.warn("Tentativa de deletar empresa ID {}", id);
+
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
+
+        try {
+            companyRepository.delete(company);
+            logger.info("Empresa ID {} deletada com sucesso.", id);
+        } catch (Exception e) {
+            logger.error("Erro ao deletar empresa ID {}, {}", id, e.getMessage());
+            throw new DataIntegrityException("Não foi possível deletar a empresa.");
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<CompanyDTO> getAllCompanies() {
         return companyRepository.findAll().stream()
