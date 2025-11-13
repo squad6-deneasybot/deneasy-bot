@@ -39,6 +39,27 @@ public class CompanyService {
         return companyRepository.save(company);
     }
 
+    @Transactional
+    public CompanyDTO updateCompany(Long id, CompanyDTO companyDetails) {
+        logger.info("Atualizando empresa ID {} com novos dados.", companyDetails.getCompanyName());
+
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
+
+        companyRepository.findByAppKey(companyDetails.getAppKey())
+                .filter(existingCompany -> !existingCompany.getId().equals(id))
+                .ifPresent(existingCompany -> {
+                    throw new DataIntegrityException("Já existe uma empresa cadastrada com esta App Key.");
+                });
+
+        company.setName(companyDetails.getCompanyName());
+        company.setAppKey(companyDetails.getAppKey());
+        company.setAppSecret(companyDetails.getAppSecret());
+
+        Company updatedCompany = companyRepository.save(company);
+        return new CompanyDTO(updatedCompany);
+    }
+
     @Transactional(readOnly = true)
     public List<CompanyDTO> getAllCompanies() {
         return companyRepository.findAll().stream()
