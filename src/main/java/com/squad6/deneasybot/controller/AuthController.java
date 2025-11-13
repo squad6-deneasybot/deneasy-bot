@@ -16,6 +16,12 @@ public class AuthController {
         this.authService = authService;
     }
 
+    @PostMapping("/admin/login")
+    public ResponseEntity<AdminAuthResponseDTO> adminLogin(@RequestBody AdminLoginRequestDTO request) {
+        AdminAuthResponseDTO response = authService.loginAdmin(request.email(), request.password());
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
         String token = authHeader.replace("Bearer ", "").trim();
