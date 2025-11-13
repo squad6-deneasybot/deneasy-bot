@@ -234,6 +234,14 @@ public class WhatsAppFormatterService {
         return "Obrigado! Sua sugestão foi registrada e será analisada pela nossa equipe. 👍";
     }
 
+    public String formatFeedbackTextPrompt() {
+        return "Antes de encerrar, o que você achou deste atendimento? (Sua opinião é muito importante)";
+    }
+
+    public String formatFeedbackRatingPrompt() {
+        return "Obrigado pelo feedback! Para finalizar, de 1 (Ruim) a 5 (Ótimo), que nota você dá para o DeneasyBot?";
+    }
+
     private String formatCurrency(BigDecimal value) {
         if (value == null) {
             value = BigDecimal.ZERO;

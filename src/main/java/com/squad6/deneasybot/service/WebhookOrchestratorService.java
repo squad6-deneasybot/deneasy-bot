@@ -126,6 +126,15 @@ public class WebhookOrchestratorService {
                     case AWAITING_CRUD_POST_ACTION:
                         handleStateCrudPostAction(userPhone, messageText);
                         break;
+
+                    // --- MUDANÇAS ADICIONADAS AQUI ---
+                    case AWAITING_FEEDBACK_TEXT:
+                        handleStateAwaitingFeedbackText(userPhone, messageText);
+                        break;
+                    case AWAITING_FEEDBACK_RATING:
+                        handleStateAwaitingFeedbackRating(userPhone, messageText);
+                        break;
+                    // --- FIM DAS MUDANÇAS ---
                 }
             } catch (Exception e) {
                 logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
@@ -327,8 +336,9 @@ public class WebhookOrchestratorService {
                 break;
 
             case "3":
-                chatStateService.clearAll(userPhone);
-                whatsAppService.sendMessage(userPhone, "Atendimento encerrado. Obrigado por usar o DeneasyBot! 👋");
+                logger.info("Usuário {} optou por encerrar. Solicitando feedback de texto.", userPhone);
+                whatsAppService.sendMessage(userPhone, formatterService.formatFeedbackTextPrompt());
+                chatStateService.setState(userPhone, ChatState.AWAITING_FEEDBACK_TEXT);
                 break;
 
             default:
@@ -583,8 +593,9 @@ public class WebhookOrchestratorService {
                 whatsAppService.sendMessage(userPhone, formatterService.formatMenu(profile));
                 break;
             case "3":
-                chatStateService.clearAll(userPhone);
-                whatsAppService.sendMessage(userPhone, "Atendimento encerrado. Obrigado por usar o DeneasyBot! 👋");
+                logger.info("Usuário {} optou por encerrar (via CRUD). Solicitando feedback de texto.", userPhone);
+                whatsAppService.sendMessage(userPhone, formatterService.formatFeedbackTextPrompt());
+                chatStateService.setState(userPhone, ChatState.AWAITING_FEEDBACK_TEXT);
                 break;
             default:
                 whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudPostActionMenu());
@@ -637,6 +648,47 @@ public class WebhookOrchestratorService {
             whatsAppService.sendMessage(userPhone, "Desculpe, ocorreu um erro ao buscar essa informação. Por favor, tente novamente.\n\n" + faqService.getFaqMenu());
         }
     }
+
+    private void handleStateAwaitingFeedbackText(String userPhone, String messageText) {
+        String feedbackContent = messageText.trim();
+
+        chatStateService.saveData(userPhone, "temp_feedback_text", feedbackContent);
+
+        whatsAppService.sendMessage(userPhone, formatterService.formatFeedbackRatingPrompt());
+        chatStateService.setState(userPhone, ChatState.AWAITING_FEEDBACK_RATING);
+    }
+
+    private void handleStateAwaitingFeedbackRating(String userPhone, String messageText) {
+        String ratingStr = messageText.trim();
+
+        if (!ratingStr.matches("^[1-5]$")) {
+            logger.warn("Usuário {} digitou uma nota inválida: '{}'", userPhone, ratingStr);
+            whatsAppService.sendMessage(userPhone, "Por favor, digite apenas um número de 1 a 5.");
+            return;
+        }
+
+        try {
+            int rating = Integer.parseInt(ratingStr);
+
+            String content = chatStateService.getData(userPhone, "temp_feedback_text", String.class)
+                    .orElse("N/A - (Não foi possível recuperar o texto do feedback)");
+
+            User user = userRepository.findByPhone(userPhone)
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado para salvar avaliação: " + userPhone));
+
+            feedbackService.saveEvaluation(user, content, rating);
+
+            logger.info("Avaliação (Nota: {}) salva com sucesso para o usuário {}", rating, userPhone);
+
+            whatsAppService.sendMessage(userPhone, "Obrigado pela sua avaliação! Atendimento encerrado. 👋");
+            chatStateService.clearAll(userPhone);
+
+        } catch (NumberFormatException e) {
+            logger.warn("Erro de formato de número na nota de feedback: '{}'", ratingStr);
+            whatsAppService.sendMessage(userPhone, "Por favor, digite apenas um número de 1 a 5.");
+        }
+    }
+
 
     private UserProfile getUserProfile(String userPhone) {
         User user = userRepository.findByPhone(userPhone)
