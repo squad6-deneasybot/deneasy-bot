@@ -99,6 +99,9 @@ public class WebhookOrchestratorService {
                     case AWAITING_CRUD_ADD_NAME:
                         handleStateCrudAddName(userPhone, messageText);
                         break;
+                    case AWAITING_FAQ_CHOICE:
+                        handleStateAwaitingFaqChoice(userPhone, messageText);
+                        break;
                     case AWAITING_CRUD_ADD_EMAIL:
                         handleStateCrudAddEmail(userPhone, messageText);
                         break;
@@ -144,7 +147,6 @@ public class WebhookOrchestratorService {
             }
         }
     }
-
 
     private void handleStateStart(String userPhone, String messageText) {
         try {
@@ -583,10 +585,39 @@ public class WebhookOrchestratorService {
         }
     }
 
+    private void handleStateAwaitingFaqChoice(String userPhone, String messageText) {
+        //TODO para cada switch chamará uma função facservice
+        User profile = getUserByPhone(userPhone);
+        String option = messageText.trim();
+
+        switch (option) {
+            case "1":
+                faqService.getTitulosAVencer(userPhone);
+                break;
+            case "2":
+                faqService.getTitulosEmAtraso(userPhone);
+                break;
+            case "3":
+                faqService.getProjecaoDeCaixa(userPhone);
+                break;
+            case "4":
+                faqService.getTopDespesasPorCategoria(userPhone);
+                break;
+            case "V":
+                whatsAppService.sendMessage(userPhone, formatterService.formatMenu(profile.getProfile()));
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                break;
+            default:
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatCrudPostActionMenu());
+                break;
+        }
+    }
+
     private UserProfile getUserProfile(String userPhone) {
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone + " (dentro de getUserProfile)"));
 
         return user.getProfile();
     }
+
 }

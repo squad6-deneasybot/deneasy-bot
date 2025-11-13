@@ -34,17 +34,16 @@ public class WhatsAppFormatterService {
     }
 
     public String formatFaqMenu(List<String> questions) {
-        StringBuilder sb = new StringBuilder("*📋 FAQ - Perguntas Frequentes*\n\n");
+        StringBuilder menu = new StringBuilder();
+        menu.append("Escolha um relatório:\n\n");
+        menu.append("1️⃣ Títulos a Vencer\n");
+        menu.append("2️⃣ Títulos Vencidos\n");
+        menu.append("3️⃣ Projeção de Caixa\n");
+        menu.append("4️⃣ Top despesas\n\n");
 
-        for (int i = 0; i < questions.size(); i++) {
-            sb.append(i + 1)
-                    .append(". ")
-                    .append(questions.get(i))
-                    .append("\n");
-        }
+        menu.append("V. Voltar");
 
-        sb.append("\nV. Voltar");
-        return sb.toString();
+        return menu.toString();
     }
 
     public String formatSimpleReport(ReportSimpleDTO dto) {
