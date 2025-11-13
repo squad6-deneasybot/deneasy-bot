@@ -211,20 +211,23 @@ public class WhatsAppFormatterService {
     }
 
     public String formatFaqMenu() {
-        StringBuilder menu = new StringBuilder();
-        menu.append("Escolha uma pergunta:\n\n");
-        menu.append("1️⃣ Títulos a Vencer\n");
-        menu.append("2️⃣ Títulos Vencidos\n");
-        menu.append("3️⃣ Projeção de Caixa\n");
-        menu.append("4️⃣ Top despesas\n\n");
-        menu.append("V. Voltar ao Menu Principal");
-        return menu.toString();
+        return """
+                Escolha uma pergunta:
+                
+                1️⃣ Títulos a Vencer
+                2️⃣ Títulos Vencidos
+                3️⃣ Projeção de Caixa
+                4️⃣ Top despesas
+                
+                V. Voltar ao Menu Principal""";
     }
 
     public String formatWishlistPrompt() {
-        return "Entendido! Sua opinião é muito importante para nós. 💡\n\n" +
-                "Por favor, descreva em *uma única mensagem* o que você gostaria de ver " +
-                "no DeneasyBot que facilitaria seu trabalho:";
+        return """
+                Entendido! Sua opinião é muito importante para nós. 💡
+                
+                Por favor, descreva em *uma única mensagem* o que você gostaria de ver \
+                no DeneasyBot que facilitaria seu trabalho:""";
     }
 
     public String formatWishlistThanks() {

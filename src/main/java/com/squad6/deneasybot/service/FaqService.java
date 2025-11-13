@@ -18,7 +18,6 @@ import com.squad6.deneasybot.client.OmieErpClient;
 import com.squad6.deneasybot.exception.ResourceNotFoundException;
 import com.squad6.deneasybot.model.Company;
 import com.squad6.deneasybot.model.CategoryStat;
-import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
 import com.squad6.deneasybot.model.OmieDTO.MovementHeader;
 import com.squad6.deneasybot.model.OmieDTO.MovementSummary;
@@ -31,7 +30,6 @@ public class FaqService {
     private static final Logger logger = LoggerFactory.getLogger(FaqService.class);
 
     private static final int PROJECTION_DAYS = 7;
-    // (Nome corrigido de STATUS_EM_ABERTO para STATUS_LIQUIDADO para maior clareza)
     private static final Set<String> STATUS_LIQUIDADO = Set.of("PAGO", "LIQUIDADO", "CANCELADO");
     private static final String GRUPO_CONTA_A_PAGAR = "CONTA_A_PAGAR";
     private static final String GRUPO_CONTA_A_RECEBER = "CONTA_A_RECEBER";
@@ -53,63 +51,36 @@ public class FaqService {
         this.categoryCacheService = categoryCacheService;
     }
 
-    // --- MÉTODO FALTANTE (CA 3) ADICIONADO ---
-    /**
-     * CA 3: Retorna o menu de FAQ formatado.
-     * Chamado pelo MenuService (case "2").
-     */
     public String getFaqMenu() {
-        // (A lógica de quais perguntas mostrar pode ser baseada no UserProfile no futuro)
-        // Por enquanto, chama o formatador com as perguntas hardcoded.
-        // O formatador já tem o texto (1. Títulos a Vencer, 2. Títulos Vencidos, etc.)
         return formatterService.formatFaqMenu();
     }
 
-    // --- MÉTODO PRINCIPAL (CA 3) ADICIONADO ---
-    /**
-     * CA 3: Ponto de entrada do Orquestrador.
-     * Chama a lógica de negócio correta com base na opção.
-     */
-    @Transactional(readOnly = true) // Transação para garantir a busca de credenciais
+    @Transactional(readOnly = true)
     public String getFaqAnswer(String option, String userPhone) {
 
-        // Busca o usuário e credenciais UMA VEZ
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
         Company company = user.getCompany();
         String appKey = company.getAppKey();
         String appSecret = company.getAppSecret();
 
-        // Usa o switch moderno
         return switch (option.trim()) {
-            // (Note: os métodos de lógica agora recebem appKey/appSecret em vez de userPhone)
             case "1" -> getTitulosAVencer(appKey, appSecret);
             case "2" -> getTitulosEmAtraso(appKey, appSecret);
             case "3" -> getProjecaoDeCaixa(appKey, appSecret);
             case "4" -> getTopDespesasPorCategoria(appKey, appSecret);
-            // TODO: Adicionar cases 5-8 aqui
             default -> throw new IllegalArgumentException("Opção de FAQ inválida: " + option);
         };
     }
 
-
-    // --- MÉTODOS DE LÓGICA DE NEGÓCIO (PRIVADOS) ---
-
-    /**
-     * RF-FAQ-03 (Lógica): Projeção de Caixa
-     * (MÉTODO CORRIGIDO)
-     */
     private String getProjecaoDeCaixa(String appKey, String appSecret) {
         logger.info("Iniciando projeção de caixa...");
 
-        // 1. Saldo Atual (RF-ERP-04)
         BigDecimal saldoAtual = financialAggregatorService.getCurrentBalance(appKey, appSecret);
 
-        // 2. Definir Período
         LocalDate startDate = LocalDate.now();
         LocalDate endDate = startDate.plusDays(PROJECTION_DAYS);
 
-        // 3. Buscar Movimentos Futuros (RF-ERP-01)
         List<MovementDetail> movimentosFuturos = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret,
                 startDate, endDate);
 
@@ -118,18 +89,15 @@ public class FaqService {
 
         for (MovementDetail movement : movimentosFuturos) {
             MovementHeader header = movement.header();
-            MovementSummary summary = movement.summary(); // <-- CORREÇÃO: Usar o Summary
+            MovementSummary summary = movement.summary();
 
-            // Validação de dados essenciais
             if (header == null || summary == null || header.cGrupo() == null ||
                     header.cStatus() == null || summary.nValAberto() == null) {
                 continue;
             }
 
-            // CORREÇÃO: Filtra apenas por status EM ABERTO
             if (!STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
 
-                // CORREÇÃO: Soma o nValAberto do Summary
                 if (GRUPO_CONTA_A_RECEBER.equals(header.cGrupo())) {
                     totalReceber = totalReceber.add(summary.nValAberto());
                 } else if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
@@ -147,15 +115,12 @@ public class FaqService {
                 PROJECTION_DAYS);
     }
 
-    /**
-     * RF-FAQ-02 (Lógica): Títulos em Atraso
-     */
     private String getTitulosEmAtraso(String appKey, String appSecret) {
         logger.info("Iniciando análise de títulos em atraso...");
 
         LocalDate today = LocalDate.now();
-        LocalDate startDate = today.minusYears(2); // Período retroativo
-        LocalDate endDate = today.minusDays(1);  // Até ontem
+        LocalDate startDate = today.minusYears(2);
+        LocalDate endDate = today.minusDays(1);
 
         List<MovementDetail> movimentos = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret,
                 startDate, endDate);
@@ -179,7 +144,6 @@ public class FaqService {
                 continue;
             }
 
-            // Foco apenas em Contas a Pagar que NÃO estão liquidadas
             if (!GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) || STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
                 continue;
             }
@@ -187,7 +151,6 @@ public class FaqService {
             try {
                 LocalDate vencimento = LocalDate.parse(header.dDtVenc(), OmieErpClient.OMIE_DATE_FORMATTER);
 
-                // Garante que estamos olhando apenas para o que venceu ANTES de hoje
                 if (vencimento.isBefore(today)) {
                     long daysOverdue = ChronoUnit.DAYS.between(vencimento, today);
                     BigDecimal valor = summary.nValAberto();
@@ -201,7 +164,7 @@ public class FaqService {
                     } else if (daysOverdue <= 90) {
                         count61_90++;
                         total61_90 = total61_90.add(valor);
-                    } else { // Mais de 90 dias
+                    } else {
                         count90_plus++;
                         total90_plus = total90_plus.add(valor);
                     }
@@ -218,9 +181,6 @@ public class FaqService {
                 total61_90, count90_plus, total90_plus);
     }
 
-    /**
-     * RF-FAQ-05 (Lógica): Top 3 Despesas por Categoria
-     */
     private String getTopDespesasPorCategoria(String appKey, String appSecret) {
         logger.info("Iniciando busca 'Top 3 Despesas'...");
 
@@ -230,7 +190,6 @@ public class FaqService {
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate,
                 endDate);
 
-        // CORREÇÃO: Usando a constante da classe (linha 34)
         final Set<String> statusPago = Set.of("PAGO", "LIQUIDADO");
         Map<String, BigDecimal> aggregationMap = new HashMap<>();
 
@@ -243,7 +202,6 @@ public class FaqService {
                 continue;
             }
 
-            // CORREÇÃO: Usando a constante da classe (linha 35)
             if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo()) && statusPago.contains(header.cStatus().toUpperCase())) {
                 String categoryCode = header.cCodCateg();
                 BigDecimal value = summary.nValPago();
@@ -261,7 +219,6 @@ public class FaqService {
             String categoryCode = entry.getKey();
             BigDecimal totalValue = entry.getValue();
 
-            // (CA 3g)
             String categoryName = categoryCacheService.getRootCategory(appKey, appSecret, categoryCode);
 
             if (categoryName == null || categoryName.isBlank()) {
@@ -277,10 +234,6 @@ public class FaqService {
         return formatterService.formatFaqTopCategorias(topCategories);
     }
 
-    /**
-     * RF-FAQ-01 (Lógica): Títulos a Vencer
-     * (MÉTODO CORRIGIDO - Lógica otimizada e sem duplicata)
-     */
     private String getTitulosAVencer(String appKey, String appSecret) {
         logger.info("Iniciando busca 'Títulos a Vencer'...");
 
@@ -300,13 +253,11 @@ public class FaqService {
 
             if (header == null || summary == null || header.cGrupo() == null ||
                     header.cStatus() == null || summary.nValAberto() == null) {
-                continue; // Ignora movimentos malformados
+                continue;
             }
 
-            // Filtra por status (não pode estar pago/cancelado)
             if (!STATUS_LIQUIDADO.contains(header.cStatus().toUpperCase())) {
 
-                // Agrega (o Fetcher JÁ filtrou pela data de vencimento)
                 if (GRUPO_CONTA_A_PAGAR.equals(header.cGrupo())) {
                     totalPagar = totalPagar.add(summary.nValAberto());
                     countPagar++;
