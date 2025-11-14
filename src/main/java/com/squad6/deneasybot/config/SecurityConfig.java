@@ -20,9 +20,15 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/webhook").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
+
+                        .anyRequest().authenticated()
                 )
                 .headers(headers -> headers
+                        // Necessário para o H2 Console
                         .frameOptions(HeadersConfigurer.FrameOptionsConfig::disable)
                 );
 
