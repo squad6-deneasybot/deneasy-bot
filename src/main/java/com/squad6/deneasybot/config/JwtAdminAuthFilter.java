@@ -48,7 +48,7 @@ public class JwtAdminAuthFilter extends OncePerRequestFilter {
         try {
             adminEmail = jwtUtil.extractEmail(jwt);
         } catch (Exception e) {
-            logger.warn("Tentativa de acesso com token JWT inválido: " + e.getMessage());
+            logger.warn("Tentativa de acesso com token JWT inválido");
             filterChain.doFilter(request, response);
             return;
         }
