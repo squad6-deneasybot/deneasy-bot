@@ -28,8 +28,12 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/auth/admin/login").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/webhook").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
