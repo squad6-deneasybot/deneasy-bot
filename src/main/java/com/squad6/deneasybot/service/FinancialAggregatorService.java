@@ -37,20 +37,7 @@ public class FinancialAggregatorService {
         this.omieErpClient = omieErpClient;
     }
 
-    public ReportSimpleDTO aggregateReportData(String appKey, String appSecret, String period) {
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate;
-
-        switch (period.toLowerCase()) {
-            case "weekly":
-                startDate = endDate.minusDays(7);
-                break;
-            case "monthly":
-                startDate = endDate.minusDays(30);
-                break;
-            default:
-                throw new IllegalArgumentException("Período inválido: " + period + ". Use 'weekly' ou 'monthly'.");
-        }
+    public ReportSimpleDTO aggregateReportData(String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
 
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate, endDate);
 
@@ -61,7 +48,6 @@ public class FinancialAggregatorService {
         logger.info("Iniciando agregação de {} movimentos...", movements.size());
 
         for (MovementDetail movement : movements) {
-
             OmieDTO.MovementHeader header = movement.header();
             if (header == null) {
                 logger.warn("Movimento com header nulo. Pulando.");
@@ -69,18 +55,12 @@ public class FinancialAggregatorService {
             }
 
             String group = header.cGrupo();
-
             BigDecimal valor = header.nValorTitulo();
 
-            if (valor == null) {
-                continue;
-            }
+            if (valor == null) continue;
 
             String cCodCateg = header.cCodCateg();
-            if (cCodCateg == null) {
-                continue;
-            }
-
+            if (cCodCateg == null) continue;
 
             String rootCategory = categoryCacheService.getRootCategory(appKey, appSecret, cCodCateg);
 
@@ -88,7 +68,6 @@ public class FinancialAggregatorService {
                 logger.warn("Não foi possível mapear a categoria raiz para o código: {}. Pulando.", cCodCateg);
                 continue;
             }
-
 
             if (GRUPO_CONTA_A_RECEBER.equals(group)) {
                 if ("1.0".equals(rootCategory)) {
@@ -105,7 +84,6 @@ public class FinancialAggregatorService {
                         despesasFixas = despesasFixas.add(valor);
                         break;
                     default:
-
                         if (rootCategory.startsWith("2.") || rootCategory.startsWith("3.")) {
                             despesasFixas = despesasFixas.add(valor);
                         }
@@ -116,30 +94,17 @@ public class FinancialAggregatorService {
 
         String companyName = "Empresa não encontrada";
         try {
-
             Optional<Company> companyOptional = companyRepository.findByAppKey(appKey);
             if (companyOptional.isPresent()) {
                 companyName = companyOptional.get().getName();
-            } else {
-                logger.warn("Nenhuma empresa encontrada no banco de dados local com a appKey: {}", appKey);
             }
         } catch (Exception e) {
             logger.error("Erro ao buscar nome da empresa pelo appKey: {}", appKey, e);
         }
 
         BigDecimal resultadoOp = receitaOp.subtract(custosVar).subtract(despesasFixas);
+        String reportType = "Personalizado";
 
-        String reportType;
-        switch (period.toLowerCase()) {
-            case "weekly":
-                reportType = "Relatório Semanal";
-                break;
-            case "monthly":
-                reportType = "Relatório Mensal";
-                break;
-            default:
-                reportType = "Relatório";
-        }
         return new ReportSimpleDTO(
                 reportType,
                 companyName,
@@ -155,15 +120,11 @@ public class FinancialAggregatorService {
     public BigDecimal getCurrentBalance(String appKey, String appSecret) {
         logger.info("Buscando saldo atual (ObterResumoFinancas)...");
         LocalDate hoje = LocalDate.now();
-
         OmieDTO.FinancialSummaryResponse response = omieErpClient.getFinancialSummary(appKey, appSecret, hoje);
 
         if (response != null && response.contaCorrente() != null && response.contaCorrente().vTotal() != null) {
-            BigDecimal saldoAtual = response.contaCorrente().vTotal();
-            logger.info("Saldo atual obtido: {}", saldoAtual);
-            return saldoAtual;
+            return response.contaCorrente().vTotal();
         } else {
-            logger.warn("Não foi possível extrair o vTotal (Saldo Atual) da resposta da Omie. Resposta: {}", response);
             return BigDecimal.ZERO;
         }
     }
