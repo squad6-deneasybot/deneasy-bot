@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/report")
 public class ReportController {
@@ -21,10 +23,12 @@ public class ReportController {
     @GetMapping("/simple")
     public ResponseEntity<ReportSimpleDTO> generateSimpleReport(
             @RequestParam String appKey,
-            @RequestParam String appSecret,
-            @RequestParam(defaultValue = "monthly") String period) {
+            @RequestParam String appSecret) {
 
-        ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, period);
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30);
+
+        ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, startDate, endDate);
         return ResponseEntity.ok(report);
     }
 }

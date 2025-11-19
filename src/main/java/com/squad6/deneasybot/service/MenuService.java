@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 public class MenuService {
 
@@ -35,11 +34,9 @@ public class MenuService {
     public String processMenuOption(String userPhone, String messageText) throws IllegalArgumentException {
         logger.info("MenuService: Processando '{}' para {}", messageText, userPhone);
 
-
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> {
                     logger.error("Usuário autenticado {} não encontrado no banco.", userPhone);
-
                     return new RuntimeException("Usuário autenticado não encontrado.");
                 });
 
@@ -47,12 +44,7 @@ public class MenuService {
 
         switch (messageText.trim()) {
             case "1":
-                String appKey = user.getCompany().getAppKey();
-                String appSecret = user.getCompany().getAppSecret();
-                String period = "monthly";
-
-                ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, period);
-                return whatsAppFormatterService.formatSimpleReport(report);
+                return whatsAppFormatterService.formatReportPeriodMenu();
 
             case "2":
                 return faqService.getFaqMenu();
@@ -70,7 +62,6 @@ public class MenuService {
                 if (profile == UserProfile.MANAGER) {
                     return whatsAppFormatterService.formatCrudMenu();
                 } else {
-
                     throw new IllegalArgumentException("Opção '4' inválida para o perfil EMPLOYEE.");
                 }
             case "5":
