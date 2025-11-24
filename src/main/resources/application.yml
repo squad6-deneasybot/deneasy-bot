@@ -57,3 +57,21 @@ management:
   endpoint:
     health:
       show-details: "never"
+
+resilience4j:
+  ratelimiter:
+    instances:
+      omieApi:
+        limitForPeriod: 4
+        limitRefreshPeriod: 1s
+        timeoutDuration: 5s
+  bulkhead:
+    instances:
+      omieApi:
+        maxConcurrentCalls: 4
+        maxWaitDuration: 5s
+  retry:
+    instances:
+      omieApi:
+        maxAttempts: 3
+        waitDuration: 500ms

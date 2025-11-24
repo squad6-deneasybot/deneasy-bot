@@ -135,6 +135,9 @@ public class OmieErpClient {
         }
     }
 
+    @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "omieApi")
+    @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "omieApi")
+    @io.github.resilience4j.retry.annotation.Retry(name = "omieApi")
     public OmieDTO.MovementResponse listMovements(String appKey, String appSecret, OmieDTO.MovementFilterParam param) {
 
         var requestBody = new OmieDTO.MovementRequest("ListarMovimentos", appKey, appSecret, List.of(param));
@@ -159,6 +162,9 @@ public class OmieErpClient {
         }
     }
 
+    @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "omieApi")
+    @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "omieApi")
+    @io.github.resilience4j.retry.annotation.Retry(name = "omieApi")
     public OmieDTO.OmieCategoryDTO consultCategory(String appKey, String appSecret, String categoryCode) {
         var param = new OmieDTO.CategoryRequestParam(categoryCode);
         var requestBody = new OmieDTO.CategoryRequest("ConsultarCategoria", appKey, appSecret, List.of(param));
@@ -188,6 +194,9 @@ public class OmieErpClient {
         }
     }
 
+    @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "omieApi")
+    @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "omieApi")
+    @io.github.resilience4j.retry.annotation.Retry(name = "omieApi")
     public OmieDTO.FinancialSummaryResponse getFinancialSummary(String appKey, String appSecret, LocalDate date) {
         String dDia = date.format(OMIE_DATE_FORMATTER);
         var param = new OmieDTO.FinancialSummaryParam(dDia);

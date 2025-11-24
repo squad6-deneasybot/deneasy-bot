@@ -343,7 +343,7 @@ public class WebhookOrchestratorService {
                 break;
 
             case "3":
-                whatsAppService.sendMessage(userPhone, "Digite o número de dias que você quer analisar (ex: 15):");
+                whatsAppService.sendMessage(userPhone, "Digite o número de dias que você quer analisar (Até 90 dias):");
                 chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_CUSTOM_DAYS);
                 break;
 
@@ -361,8 +361,8 @@ public class WebhookOrchestratorService {
     private void handleStateAwaitingReportCustomDays(String userPhone, String messageText) {
         try {
             int days = Integer.parseInt(messageText.trim());
-            if (days <= 0 || days > 365) {
-                whatsAppService.sendMessage(userPhone, "⚠️ Por favor, digite um número válido entre 1 e 365.");
+            if (days <= 0 || days > 90) {
+                whatsAppService.sendMessage(userPhone, "⚠️ Por favor, digite um número válido entre 1 e 90.");
                 return;
             }
 
@@ -447,7 +447,7 @@ public class WebhookOrchestratorService {
     }
 
     private User getUserByPhone(String userPhone) {
-        return userRepository.findByPhone(userPhone)
+        return userRepository.findByPhoneWithCompany(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone));
     }
 
