@@ -65,7 +65,7 @@ public class WhatsAppFormatterService {
 
         return "🔎 *Projeção de Caixa — próximos " + dias + " dias*\n\n" + "🔵 Saldo atual: R$ " + sAtual + "\n"
                 + "🟢 Prev. receber: R$ " + sReceber + "\n" + "🔴 Prev. pagar: R$ " + sPagar + "\n\n"
-                + "🟡 Saldo previsto: *R$ " + sPrevisto + "*";
+                + "🔵 Saldo previsto: *R$ " + sPrevisto + "*";
     }
 
     public String formatFallbackError() {
