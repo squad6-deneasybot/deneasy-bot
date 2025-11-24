@@ -69,7 +69,7 @@ resilience4j:
     instances:
       omieApi:
         maxConcurrentCalls: 4
-        maxWaitDuration: 5s
+        maxWaitDuration: 10s
   retry:
     instances:
       omieApi:

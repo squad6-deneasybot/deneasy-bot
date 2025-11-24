@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -15,48 +16,76 @@ public class CategoryCacheService {
     private static final Logger logger = LoggerFactory.getLogger(CategoryCacheService.class);
     private final OmieErpClient omieErpClient;
 
-    private final Map<String, String> categoryCache = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> companyCategoryCache = new ConcurrentHashMap<>();
 
     public CategoryCacheService(OmieErpClient omieErpClient) {
         this.omieErpClient = omieErpClient;
     }
 
-    private String parseRootCategory(String descricao) {
-        if (descricao == null || descricao.trim().isEmpty()) {
-            return null;
+    public String getRootCategory(String appKey, String appSecret, String categoryCode) {
+
+        if (!companyCategoryCache.containsKey(appKey)) {
+            synchronized (this) {
+                if (!companyCategoryCache.containsKey(appKey)) {
+                    loadAllCategoriesFromErp(appKey, appSecret);
+                }
+            }
         }
 
-        String[] parts = descricao.split(" ", 2);
-        String rootCategory = parts[0];
+        Map<String, String> categoryMap = companyCategoryCache.get(appKey);
 
-        if (rootCategory.matches("^[\\d.]+$")) {
-            return rootCategory;
-        } else {
-            logger.warn("Formato de descrição de categoria inesperado: '{}'", descricao);
-            return null;
-        }
+        return categoryMap.getOrDefault(categoryCode, categoryCode);
     }
 
-    public String getRootCategory(String appKey, String appSecret, String subCategoryCode) {
-        if (categoryCache.containsKey(subCategoryCode)) {
-            logger.debug("Cache HIT para categoria: {}", subCategoryCode);
-            return categoryCache.get(subCategoryCode);
+    private void loadAllCategoriesFromErp(String appKey, String appSecret) {
+        logger.info("Iniciando pré-carregamento de categorias para a empresa (AppKey: {})...", appKey);
+
+        Map<String, String> newCache = new HashMap<>();
+        int page = 1;
+        int totalPages = 1;
+
+        do {
+            try {
+                OmieDTO.CategoryListResponse response = omieErpClient.listCategories(appKey, appSecret, page);
+
+                if (response != null) {
+                    totalPages = response.totalDePaginas();
+
+                    if (response.categorias() != null) {
+                        for (OmieDTO.OmieCategoryDTO cat : response.categorias()) {
+                            String rootName = extractRootName(cat.descricao());
+
+                            newCache.put(cat.codigo(), rootName);
+                        }
+                    }
+                }
+                page++;
+
+            } catch (Exception e) {
+                logger.error("Erro ao carregar página {} de categorias. Parando carga.", page, e);
+                break;
+            }
+        } while (page <= totalPages);
+
+        companyCategoryCache.put(appKey, newCache);
+        logger.info("Cache de categorias carregado com sucesso. Total mapeado: {}", newCache.size());
+    }
+
+    private String extractRootName(String descricao) {
+        if (descricao == null || descricao.isBlank()) return "Indefinido";
+
+        String[] parts = descricao.trim().split(" ");
+
+        if (parts.length > 0) {
+            String potentialCode = parts[0];
+            if (potentialCode.matches(".*\\d.*")) {
+                return potentialCode;
+            }
         }
+        return descricao;
+    }
 
-        logger.info("Cache MISS para categoria: {}. Consultando API Omie...", subCategoryCode);
-
-        OmieDTO.OmieCategoryDTO categoryDTO = omieErpClient.consultCategory(appKey, appSecret, subCategoryCode);
-
-        String rootCategory = parseRootCategory(categoryDTO.descricao());
-
-        if (rootCategory != null) {
-            categoryCache.put(subCategoryCode, rootCategory);
-            logger.info("Categoria '{}' mapeada para '{}' e salva no cache.", subCategoryCode, rootCategory);
-            return rootCategory;
-        } else {
-            logger.warn("Não foi possível extrair a categoria raiz da descrição: '{}' para o código: {}",
-                    categoryDTO.descricao(), subCategoryCode);
-            return null;
-        }
+    public void clearCache(String appKey) {
+        companyCategoryCache.remove(appKey);
     }
 }

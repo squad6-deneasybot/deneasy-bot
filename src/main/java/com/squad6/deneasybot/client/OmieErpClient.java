@@ -165,38 +165,6 @@ public class OmieErpClient {
     @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "omieApi")
     @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "omieApi")
     @io.github.resilience4j.retry.annotation.Retry(name = "omieApi")
-    public OmieDTO.OmieCategoryDTO consultCategory(String appKey, String appSecret, String categoryCode) {
-        var param = new OmieDTO.CategoryRequestParam(categoryCode);
-        var requestBody = new OmieDTO.CategoryRequest("ConsultarCategoria", appKey, appSecret, List.of(param));
-
-        try {
-            OmieDTO.OmieCategoryDTO response = restTemplate.postForObject(
-                    omieCategoriesApiUrl,
-                    requestBody,
-                    OmieDTO.OmieCategoryDTO.class
-            );
-
-            if (response == null) {
-                logger.error("Resposta nula da API Omie (ConsultarCategoria) para o código: {}", categoryCode);
-                throw new RuntimeException("Falha ao consultar categoria no ERP: resposta nula.");
-            }
-
-            return response;
-
-        } catch (RestClientResponseException e) {
-            String errorBody = e.getResponseBodyAsString();
-            logger.error("Erro inesperado do cliente (ConsultarCategoria): Status {}, Body {}", e.getStatusCode(), errorBody, e);
-            throw new RuntimeException("Falha na consulta de categoria com o ERP.", e);
-
-        } catch (RestClientException e) {
-            logger.error("Erro de comunicação (ConsultarCategoria): {}", e.getMessage(), e);
-            throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
-        }
-    }
-
-    @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "omieApi")
-    @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "omieApi")
-    @io.github.resilience4j.retry.annotation.Retry(name = "omieApi")
     public OmieDTO.FinancialSummaryResponse getFinancialSummary(String appKey, String appSecret, LocalDate date) {
         String dDia = date.format(OMIE_DATE_FORMATTER);
         var param = new OmieDTO.FinancialSummaryParam(dDia);
@@ -228,6 +196,22 @@ public class OmieErpClient {
         } catch (RestClientException e) {
             logger.error("Erro de comunicação (ObterResumoFinancas): {}", e.getMessage(), e);
             throw new RuntimeException("Não foi possível comunicar com o serviço do ERP.", e);
+        }
+    }
+
+    public OmieDTO.CategoryListResponse listCategories(String appKey, String appSecret, int pageNumber) {
+        var param = new OmieDTO.CategoryListParam(pageNumber, 174);
+        var requestBody = new OmieDTO.CategoryListRequest("ListarCategorias", appKey, appSecret, List.of(param));
+
+        try {
+            return restTemplate.postForObject(
+                    omieCategoriesApiUrl,
+                    requestBody,
+                    OmieDTO.CategoryListResponse.class
+            );
+        } catch (RestClientException e) {
+            logger.error("Erro ao listar categorias na página {}: {}", pageNumber, e.getMessage());
+            throw new RuntimeException("Falha na comunicação com ERP ao buscar categorias.", e);
         }
     }
 }
