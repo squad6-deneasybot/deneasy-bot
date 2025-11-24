@@ -103,7 +103,7 @@ public class FinancialAggregatorService {
         }
 
         BigDecimal resultadoOp = receitaOp.subtract(custosVar).subtract(despesasFixas);
-        String reportType = "Personalizado";
+        String reportType = "Financeiro";
 
         return new ReportSimpleDTO(
                 reportType,

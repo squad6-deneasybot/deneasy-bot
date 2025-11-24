@@ -177,7 +177,7 @@ public class WebhookOrchestratorService {
             if (user.getSessionToken() != null && jwtUtil.isTokenValid(user.getSessionToken())) {
                 chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
                 String menu = formatterService.formatMenu(user.getProfile());
-                whatsAppService.sendMessage(userPhone, "Olá de volta, " + user.getName() + "!\n\n" + menu);
+                whatsAppService.sendMessage(userPhone, "Olá, " + getFirstName(user.getName()) + "! 👋\n\n" + menu);
             } else {
                 logger.info("Token inválido para {}. Iniciando fluxo de login...", userPhone);
                 SendEmailCodeResponseDTO codeResponse = authService.requestEmailCode(new SendEmailCodeRequestDTO(user));
@@ -187,14 +187,14 @@ public class WebhookOrchestratorService {
                 chatStateService.saveData(userPhone, "context", Context.LOGIN);
                 chatStateService.setState(userPhone, ChatState.AWAITING_EMAIL_CODE);
 
-                whatsAppService.sendMessage(userPhone, "Olá, " + user.getName() + ". Para sua segurança, enviamos um código de 6 dígitos para o seu e-mail. Por favor, digite-o:");
+                whatsAppService.sendMessage(userPhone, "Olá, " + getFirstName(user.getName()) + ". Para sua segurança, enviamos um código de *6 dígitos* para o seu e-mail. Por favor, digite-o:");
             }
 
         } catch (UserNotFoundByPhoneException e) {
             logger.info("Usuário {} não encontrado. Iniciando fluxo de registro.", userPhone);
             chatStateService.setState(userPhone, ChatState.AWAITING_APP_KEY);
             chatStateService.saveData(userPhone, "context", Context.REGISTRATION);
-            whatsAppService.sendMessage(userPhone, "Olá! 👋 Bem-vindo ao DeneasyBot. Para começar, por favor, digite sua *App Key* do ERP:");
+            whatsAppService.sendMessage(userPhone, "*Olá! 👋 Bem-vindo(a) ao DeneasyBot.*\n\nComo é sua primeira vez por aqui, por favor, digite sua *App Key* da empresa registrada no ERP:");
         }
     }
 
@@ -214,7 +214,7 @@ public class WebhookOrchestratorService {
 
             chatStateService.saveData(userPhone, "temp_company_dto", companyDTO);
             chatStateService.setState(userPhone, ChatState.AWAITING_EMAIL);
-            whatsAppService.sendMessage(userPhone, "Empresa *" + companyDTO.getCompanyName() + "* validada com sucesso! ✅\n\nAgora, qual o seu e-mail de gestor cadastrado no ERP?");
+            whatsAppService.sendMessage(userPhone, "Empresa *" + companyDTO.getCompanyName() + "* validada com sucesso! ✅\n\nAgora, qual o seu *e-mail* de gestor cadastrado no ERP?");
 
         } catch (InvalidKeysInErpException e) {
             logger.warn("Chaves inválidas para {}.", userPhone);
@@ -307,7 +307,9 @@ public class WebhookOrchestratorService {
             } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
 
-            } else if ("5".equals(option)) {
+            } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.EMPLOYEE) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
+            } else if ("5".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
             } else {
                 throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
@@ -382,7 +384,7 @@ public class WebhookOrchestratorService {
 
     private void generateAndSendReport(String userPhone, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
         try {
-            whatsAppService.sendMessage(userPhone, "⏳ Gerando relatório, por favor aguarde...");
+            whatsAppService.sendMessage(userPhone, "⏳ Só um instante... gerando seu relatório!");
 
             ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, startDate, endDate);
             String formattedReport = formatterService.formatSimpleReport(report);
@@ -500,7 +502,7 @@ public class WebhookOrchestratorService {
 
     private void handleStateCrudAddEmail(String userPhone, String messageText) {
         chatStateService.saveData(userPhone, "crud_add_email", messageText.trim());
-        whatsAppService.sendMessage(userPhone, "Qual é o telefone do novo funcionário? (Ex: 5579999998888)");
+        whatsAppService.sendMessage(userPhone, "Qual é o telefone do novo funcionário? (Ex: 557912345678)");
         chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_ADD_PHONE);
     }
 
@@ -592,16 +594,16 @@ public class WebhookOrchestratorService {
         try {
             switch (option) {
                 case "1" -> {
-                    fieldToUpdate = "name";
-                    prompt = "Qual o novo *Nome*?";
+                    fieldToUpdate = "Nome";
+                    prompt = "Qual o novo *nome*?";
                 }
                 case "2" -> {
-                    fieldToUpdate = "email";
-                    prompt = "Qual o novo *E-mail*?";
+                    fieldToUpdate = "E-mail";
+                    prompt = "Qual o novo *e-mail*?";
                 }
                 case "3" -> {
-                    fieldToUpdate = "phone";
-                    prompt = "Qual o novo *Telefone*? (Ex: 5579999998888)";
+                    fieldToUpdate = "Telefone";
+                    prompt = "Qual o novo *telefone*? (Ex: 557912345678)";
                 }
                 case "V" -> {
                     transitionToCrudMenu(userPhone, getUserProfile(userPhone));
@@ -640,9 +642,9 @@ public class WebhookOrchestratorService {
                     .orElseThrow(() -> new NoSuchElementException("Campo para atualização não encontrado na sessão."));
 
             switch (field) {
-                case "name" -> dto.setName(newValue);
-                case "email" -> dto.setEmail(newValue);
-                case "phone" -> dto.setPhone(newValue);
+                case "Nome" -> dto.setName(newValue);
+                case "E-mail" -> dto.setEmail(newValue);
+                case "Telefone" -> dto.setPhone(newValue);
             }
 
             userService.updateUser(userId, dto, manager);
@@ -764,7 +766,7 @@ public class WebhookOrchestratorService {
 
             logger.info("Avaliação (Nota: {}) salva com sucesso para o usuário {}", rating, userPhone);
 
-            whatsAppService.sendMessage(userPhone, "Obrigado pela sua avaliação! Atendimento encerrado. 👋");
+            whatsAppService.sendMessage(userPhone, "*Obrigado! ✨*\nAtendimento encerrado. Sempre que precisar, estarei por aqui. Até logo!");
             chatStateService.clearAll(userPhone);
 
         } catch (NumberFormatException e) {
@@ -773,11 +775,17 @@ public class WebhookOrchestratorService {
         }
     }
 
-
     private UserProfile getUserProfile(String userPhone) {
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone + " (dentro de getUserProfile)"));
 
         return user.getProfile();
+    }
+
+    private String getFirstName(String fullName) {
+        if (fullName == null || fullName.isBlank()) {
+            return "Visitante";
+        }
+        return fullName.trim().split("\\s+")[0];
     }
 }
