@@ -52,7 +52,7 @@ public class MenuService {
             case "3":
                 chatStateService.clearAll(userPhone);
                 return """
-                        Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número:\s
+                        Para prosseguir com um atendente, por favor, entre em contato através do número:\s
                         
                         *+55 79 99999-9999*
                         
@@ -62,10 +62,14 @@ public class MenuService {
                 if (profile == UserProfile.MANAGER) {
                     return whatsAppFormatterService.formatCrudMenu();
                 } else {
-                    throw new IllegalArgumentException("Opção '4' inválida para o perfil EMPLOYEE.");
+                    return whatsAppFormatterService.formatWishlistPrompt();
                 }
             case "5":
-                return whatsAppFormatterService.formatWishlistPrompt();
+                if (profile == UserProfile.MANAGER) {
+                    return whatsAppFormatterService.formatWishlistPrompt();
+                } else {
+                    throw new IllegalArgumentException("Opção inválida.");
+                }
 
             default:
                 throw new IllegalArgumentException("Opção '" + messageText + "' inválida.");

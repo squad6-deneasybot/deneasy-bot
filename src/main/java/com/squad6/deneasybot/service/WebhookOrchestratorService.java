@@ -177,7 +177,7 @@ public class WebhookOrchestratorService {
             if (user.getSessionToken() != null && jwtUtil.isTokenValid(user.getSessionToken())) {
                 chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
                 String menu = formatterService.formatMenu(user.getProfile());
-                whatsAppService.sendMessage(userPhone, "Olá de volta, " + user.getName() + "!\n\n" + menu);
+                whatsAppService.sendMessage(userPhone, "Olá, " + user.getName() + "!\n\n" + menu);
             } else {
                 logger.info("Token inválido para {}. Iniciando fluxo de login...", userPhone);
                 SendEmailCodeResponseDTO codeResponse = authService.requestEmailCode(new SendEmailCodeRequestDTO(user));
@@ -382,7 +382,7 @@ public class WebhookOrchestratorService {
 
     private void generateAndSendReport(String userPhone, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
         try {
-            whatsAppService.sendMessage(userPhone, "⏳ Gerando relatório, por favor aguarde...");
+            whatsAppService.sendMessage(userPhone, "⏳ Só um instante... gerando seu relatório!");
 
             ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, startDate, endDate);
             String formattedReport = formatterService.formatSimpleReport(report);
@@ -500,7 +500,7 @@ public class WebhookOrchestratorService {
 
     private void handleStateCrudAddEmail(String userPhone, String messageText) {
         chatStateService.saveData(userPhone, "crud_add_email", messageText.trim());
-        whatsAppService.sendMessage(userPhone, "Qual é o telefone do novo funcionário? (Ex: 5579999998888)");
+        whatsAppService.sendMessage(userPhone, "Qual é o telefone do novo funcionário? (Ex: 557912345678)");
         chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_ADD_PHONE);
     }
 
@@ -592,16 +592,16 @@ public class WebhookOrchestratorService {
         try {
             switch (option) {
                 case "1" -> {
-                    fieldToUpdate = "name";
-                    prompt = "Qual o novo *Nome*?";
+                    fieldToUpdate = "Nome";
+                    prompt = "Qual o novo *nome*?";
                 }
                 case "2" -> {
-                    fieldToUpdate = "email";
-                    prompt = "Qual o novo *E-mail*?";
+                    fieldToUpdate = "E-mail";
+                    prompt = "Qual o novo *e-mail*?";
                 }
                 case "3" -> {
-                    fieldToUpdate = "phone";
-                    prompt = "Qual o novo *Telefone*? (Ex: 5579999998888)";
+                    fieldToUpdate = "Telefone";
+                    prompt = "Qual o novo *telefone*? (Ex: 557912345678)";
                 }
                 case "V" -> {
                     transitionToCrudMenu(userPhone, getUserProfile(userPhone));
@@ -640,9 +640,9 @@ public class WebhookOrchestratorService {
                     .orElseThrow(() -> new NoSuchElementException("Campo para atualização não encontrado na sessão."));
 
             switch (field) {
-                case "name" -> dto.setName(newValue);
-                case "email" -> dto.setEmail(newValue);
-                case "phone" -> dto.setPhone(newValue);
+                case "Nome" -> dto.setName(newValue);
+                case "E-mail" -> dto.setEmail(newValue);
+                case "Telefone" -> dto.setPhone(newValue);
             }
 
             userService.updateUser(userId, dto, manager);

@@ -21,16 +21,17 @@ public class WhatsAppFormatterService {
 
     public String formatMenu(UserProfile profile) {
         StringBuilder menu = new StringBuilder();
-        menu.append("Olá! 👋 Escolha uma das opções abaixo:\n\n");
-        menu.append("1️⃣ Pedir Relatório Simples\n");
-        menu.append("2️⃣ Perguntas Frequentes (FAQ)\n");
-        menu.append("3️⃣ Falar com um humano\n");
+        menu.append("*Escolha uma das opções abaixo:*\n\n");
+        menu.append("1️⃣ Solicitar Relatório Financeiro\n");
+        menu.append("2️⃣ Outros Relatórios\n");
+        menu.append("3️⃣ Falar com um Atendente\n");
 
         if (profile == UserProfile.MANAGER) {
             menu.append("4️⃣ Gerenciar Funcionários\n");
+            menu.append("5️⃣ Sugerir Melhoria\n");
+        } else {
+            menu.append("4️⃣ Sugerir Melhoria\n");
         }
-
-        menu.append("5️⃣ Sugerir Melhoria\n");
 
         return menu.toString();
     }
@@ -45,13 +46,13 @@ public class WhatsAppFormatterService {
         String startDateStr = (dto.startDate() != null) ? dto.startDate().format(DATE_FORMATTER) : "N/A";
         String endDateStr = (dto.endDate() != null) ? dto.endDate().format(DATE_FORMATTER) : "N/A";
 
-        return "📊 *Relatório " + dto.reportType() + "* \n\n" +
-                "Empresa: " + dto.companyName() + "\n" +
-                "Período: " + startDateStr + " a " + endDateStr + "\n\n" +
-                "🟢 Receita Operacional: " + revenue + "\n" +
+        return "📃 *Relatório " + dto.reportType() + "* \n\n" +
+                "*Empresa:* _" + dto.companyName() + "_\n" +
+                "*Período:* _" + startDateStr + " a " + endDateStr + "_\n\n" +
+                "🟢 Receita: " + revenue + "\n" +
                 "🟠 Custos Variáveis: " + costs + "\n" +
                 "🔴 Despesas Fixas: " + expenses + "\n" +
-                "🔵 *Resultado Operacional: " + result + "*";
+                "🔵 *Resultado: " + result + "*";
     }
 
     public String formatFaqProjecaoCaixa(BigDecimal saldoAtual, BigDecimal totalPagar, BigDecimal totalReceber,
@@ -62,9 +63,9 @@ public class WhatsAppFormatterService {
         String sReceber = String.format("%,.2f", totalReceber);
         String sPrevisto = String.format("%,.2f", saldoPrevisto);
 
-        return "🔮 *Projeção de Caixa (Próximos " + dias + " dias)*\n\n" + "🔵 Saldo Atual: R$ " + sAtual + "\n"
+        return "🔎 *Projeção de Caixa (próximos " + dias + " dias)*\n\n" + "🔵 Saldo Atual: R$ " + sAtual + "\n"
                 + "🟢 Prev. Receber: R$ " + sReceber + "\n" + "🔴 Prev. Pagar: R$ " + sPagar + "\n\n"
-                + "Saldo Previsto: *R$ " + sPrevisto + "*";
+                + "🟡 Saldo Previsto: *R$ " + sPrevisto + "*";
     }
 
     public String formatFallbackError() {
@@ -77,7 +78,7 @@ public class WhatsAppFormatterService {
 
     public String formatPostActionMenu() {
         return """
-                O que você gostaria de fazer agora?
+                *O que você deseja fazer agora?*
                 
                 1️⃣ Voltar ao Menu Principal
                 2️⃣ Falar com um Atendente
@@ -91,7 +92,7 @@ public class WhatsAppFormatterService {
         BigDecimal totalValue = total1_30.add(total31_60).add(total61_90).add(total90_plus);
 
         if (totalCount == 0) {
-            return "Parabéns! Você não possui títulos de pagamento em atraso.";
+            return "Muito bem! Você não possui títulos de pagamento em atraso.";
         }
 
         String formattedTotalValue = String.format("%,.2f", totalValue);
@@ -100,11 +101,11 @@ public class WhatsAppFormatterService {
         String formattedTotal61_90 = String.format("%,.2f", total61_90);
         String formattedTotal90_plus = String.format("%,.2f", total90_plus);
 
-        return "Você possui *" + totalCount + "* títulos de pagamento em atraso, totalizando *R$ " + formattedTotalValue
-                + "*.\n\n" + "Distribuição por faixa (Aging):\n" + "• 1 a 30 dias: " + count1_30 + " títulos (R$ "
-                + formattedTotal1_30 + ")\n" + "• 31 a 60 dias: " + count31_60 + " títulos (R$ " + formattedTotal31_60
-                + ")\n" + "• 61 a 90 dias: " + count61_90 + " títulos (R$ " + formattedTotal61_90 + ")\n"
-                + "• Mais de 90 dias: " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
+        return "📃 Você possui *" + totalCount + " títulos* de pagamento em atraso, totalizando *R$ " + formattedTotalValue
+                + "*.\n\n" + "*Distribuição por faixa:*\n" + "• *1 a 30 dias:* " + count1_30 + " títulos (R$ "
+                + formattedTotal1_30 + ")\n" + "• *31 a 60 dias:* " + count31_60 + " títulos (R$ " + formattedTotal31_60
+                + ")\n" + "• *61 a 90 dias:* " + count61_90 + " títulos (R$ " + formattedTotal61_90 + ")\n"
+                + "• *Mais de 90 dias:* " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
     }
 
     public String formatFaqTopCategorias(List<CategoryStat> topCategories) {
@@ -135,7 +136,7 @@ public class WhatsAppFormatterService {
 
     public String formatFaqTitulosAVencer(int countPagar, BigDecimal totalPagar, int countReceber, BigDecimal totalReceber, int days) {
         if (countPagar == 0 && countReceber == 0) {
-            return "Boas notícias! Você não possui títulos a pagar ou a receber nos próximos " + days + " dias.";
+            return "Você não possui títulos a pagar ou a receber nos próximos " + days + " dias.";
         }
 
         StringBuilder sb = new StringBuilder();
@@ -156,7 +157,7 @@ public class WhatsAppFormatterService {
 
     public String formatCrudMenu() {
         return """
-                Gerenciamento de Funcionários:
+                *💼 Gerenciamento de Funcionários:*
                 
                 1️⃣ Listar todos
                 2️⃣ Adicionar novo
@@ -171,9 +172,9 @@ public class WhatsAppFormatterService {
             return "Você ainda não possui funcionários cadastrados.";
         }
 
-        StringBuilder sb = new StringBuilder("Aqui estão seus funcionários:\n");
+        StringBuilder sb = new StringBuilder("*Aqui estão seus funcionários:*\n");
         for (UserDTO employee : employees) {
-            sb.append("\n• ").append(employee.getName()).append(" (").append(employee.getEmail()).append(")");
+            sb.append("\n• ").append(employee.getName()).append(" — ").append(employee.getEmail());
         }
         return sb.toString();
     }
@@ -203,7 +204,7 @@ public class WhatsAppFormatterService {
 
     public String formatCrudPostActionMenu() {
         return """
-                O que você gostaria de fazer agora?
+                *O que você gostaria de fazer agora?*
                 
                 1️⃣ Voltar ao menu de gerenciar funcionários
                 2️⃣ Voltar ao menu principal
@@ -212,11 +213,11 @@ public class WhatsAppFormatterService {
 
     public String formatFaqMenu() {
         return """
-                Escolha uma pergunta:
+                *Qual relatório deseja receber?*
                 
-                1️⃣ Títulos a Vencer
-                2️⃣ Títulos Vencidos
-                3️⃣ Projeção de Caixa
+                1️⃣ Títulos a vencer
+                2️⃣ Títulos vencidos
+                3️⃣ Projeção de caixa
                 4️⃣ Top despesas
                 
                 V. Voltar ao Menu Principal""";
@@ -224,11 +225,11 @@ public class WhatsAppFormatterService {
 
     public String formatReportPeriodMenu() {
         return """
-            Entendido. Qual período você deseja analisar?
+            *Certo! 😊 Qual período você quer ver?*
 
-            1️⃣ Mês Atual (até hoje)
+            1️⃣ Mês Atual (dia 1 até hoje)
             2️⃣ Mês Anterior (completo)
-            3️⃣ Personalizado (Últimos X dias)
+            3️⃣ Personalizado (últimos X dias)
 
             V. Voltar ao Menu Principal""";
     }
@@ -242,7 +243,7 @@ public class WhatsAppFormatterService {
     }
 
     public String formatWishlistThanks() {
-        return "Obrigado! Sua sugestão foi registrada e será analisada pela nossa equipe. 👍";
+        return "Obrigado! Sua sugestão foi registrada e será analisada pela nossa equipe. ✅";
     }
 
     public String formatFeedbackTextPrompt() {
@@ -250,7 +251,7 @@ public class WhatsAppFormatterService {
     }
 
     public String formatFeedbackRatingPrompt() {
-        return "Obrigado pelo feedback! Para finalizar, de 1 (Ruim) a 5 (Ótimo), que nota você dá para o DeneasyBot?";
+        return "Obrigado pelo feedback! 😊 Para finalizar, de 1 (Ruim) a 5 (Ótimo), que nota você dá para o DeneasyBot?";
     }
 
     private String formatCurrency(BigDecimal value) {
