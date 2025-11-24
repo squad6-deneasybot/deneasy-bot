@@ -34,4 +34,4 @@ build/
 .vscode/
 
 ### Eclipse ###
-bin
+/bin
