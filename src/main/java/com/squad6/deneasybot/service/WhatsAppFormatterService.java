@@ -63,9 +63,9 @@ public class WhatsAppFormatterService {
         String sReceber = String.format("%,.2f", totalReceber);
         String sPrevisto = String.format("%,.2f", saldoPrevisto);
 
-        return "🔎 *Projeção de Caixa (próximos " + dias + " dias)*\n\n" + "🔵 Saldo Atual: R$ " + sAtual + "\n"
-                + "🟢 Prev. Receber: R$ " + sReceber + "\n" + "🔴 Prev. Pagar: R$ " + sPagar + "\n\n"
-                + "🟡 Saldo Previsto: *R$ " + sPrevisto + "*";
+        return "🔎 *Projeção de Caixa — próximos " + dias + " dias*\n\n" + "🔵 Saldo atual: R$ " + sAtual + "\n"
+                + "🟢 Prev. receber: R$ " + sReceber + "\n" + "🔴 Prev. pagar: R$ " + sPagar + "\n\n"
+                + "🟡 Saldo previsto: *R$ " + sPrevisto + "*";
     }
 
     public String formatFallbackError() {
@@ -101,11 +101,11 @@ public class WhatsAppFormatterService {
         String formattedTotal61_90 = String.format("%,.2f", total61_90);
         String formattedTotal90_plus = String.format("%,.2f", total90_plus);
 
-        return "📃 Você possui *" + totalCount + " títulos* de pagamento em atraso, totalizando *R$ " + formattedTotalValue
-                + "*.\n\n" + "*Distribuição por faixa:*\n" + "• *1 a 30 dias:* " + count1_30 + " títulos (R$ "
+        return "📃 Você tem *" + totalCount + " títulos* em atraso, totalizando *R$ " + formattedTotalValue
+                + "*.\n\n" + "*Distribuição por tempo de atraso:*\n" + "• *1 a 30 dias:* " + count1_30 + " títulos (R$ "
                 + formattedTotal1_30 + ")\n" + "• *31 a 60 dias:* " + count31_60 + " títulos (R$ " + formattedTotal31_60
                 + ")\n" + "• *61 a 90 dias:* " + count61_90 + " títulos (R$ " + formattedTotal61_90 + ")\n"
-                + "• *Mais de 90 dias:* " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
+                + "• *Acima de 90 dias:* " + count90_plus + " títulos (R$ " + formattedTotal90_plus + ")";
     }
 
     public String formatFaqTopCategorias(List<CategoryStat> topCategories) {
@@ -143,12 +143,12 @@ public class WhatsAppFormatterService {
         sb.append("Nos próximos *").append(days).append(" dias*, você tem:\n\n");
 
         if (countPagar > 0) {
-            sb.append("🔴 *A Pagar:* ").append(countPagar).append(" títulos, totalizando ")
+            sb.append("🔴 *A pagar:* ").append(countPagar).append(" títulos — ")
                     .append(formatCurrency(totalPagar)).append(".\n");
         }
 
         if (countReceber > 0) {
-            sb.append("🟢 *A Receber:* ").append(countReceber).append(" títulos, totalizando ")
+            sb.append("🟢 *A receber:* ").append(countReceber).append(" títulos — ")
                     .append(formatCurrency(totalReceber)).append(".");
         }
 
@@ -157,7 +157,7 @@ public class WhatsAppFormatterService {
 
     public String formatCrudMenu() {
         return """
-                *💼 Gerenciamento de Funcionários:*
+                *💼 Gerenciar Funcionários:*
                 
                 1️⃣ Listar todos
                 2️⃣ Adicionar novo
@@ -238,8 +238,7 @@ public class WhatsAppFormatterService {
         return """
                 Entendido! Sua opinião é muito importante para nós. 💡
                 
-                Por favor, descreva em *uma única mensagem* o que você gostaria de ver \
-                no DeneasyBot que facilitaria seu trabalho:""";
+                Pode me enviar sua sugestão em uma única mensagem. Vou registrar aqui para nossa equipe.""";
     }
 
     public String formatWishlistThanks() {
