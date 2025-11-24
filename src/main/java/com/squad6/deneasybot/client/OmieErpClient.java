@@ -199,6 +199,9 @@ public class OmieErpClient {
         }
     }
 
+    @io.github.resilience4j.ratelimiter.annotation.RateLimiter(name = "omieApi")
+    @io.github.resilience4j.bulkhead.annotation.Bulkhead(name = "omieApi")
+    @io.github.resilience4j.retry.annotation.Retry(name = "omieApi")
     public OmieDTO.CategoryListResponse listCategories(String appKey, String appSecret, int pageNumber) {
         var param = new OmieDTO.CategoryListParam(pageNumber, 174);
         var requestBody = new OmieDTO.CategoryListRequest("ListarCategorias", appKey, appSecret, List.of(param));
