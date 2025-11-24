@@ -109,8 +109,30 @@ public final class OmieDTO {
             @JsonProperty("codigo") String codigo
     ) {}
 
+    public record CategoryListRequest(
+            String call,
+            @JsonProperty("app_key") String appKey,
+            @JsonProperty("app_secret") String appSecret,
+            List<CategoryListParam> param
+    ) {}
+
+    public record CategoryListParam(
+            @JsonProperty("pagina") int pagina,
+            @JsonProperty("registros_por_pagina") int registrosPorPagina
+    ) {}
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record CategoryListResponse(
+            @JsonProperty("pagina") int pagina,
+            @JsonProperty("total_de_paginas") int totalDePaginas,
+            @JsonProperty("registros") int registros,
+            @JsonProperty("total_de_registros") int totalDeRegistros,
+            @JsonProperty("categoria_cadastro") List<OmieCategoryDTO> categorias
+    ) {}
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record OmieCategoryDTO(
+            @JsonProperty("codigo") String codigo,
             @JsonProperty("descricao") String descricao
     ) {}
 
