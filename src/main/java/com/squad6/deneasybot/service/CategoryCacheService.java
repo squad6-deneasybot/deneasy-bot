@@ -33,7 +33,9 @@ public class CategoryCacheService {
         }
 
         Map<String, String> categoryMap = companyCategoryCache.get(appKey);
-
+        if (categoryMap == null) {
+            return categoryCode;
+        }
         return categoryMap.getOrDefault(categoryCode, categoryCode);
     }
 
