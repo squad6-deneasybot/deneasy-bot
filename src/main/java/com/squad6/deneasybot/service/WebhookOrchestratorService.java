@@ -764,7 +764,7 @@ public class WebhookOrchestratorService {
 
             logger.info("Avaliação (Nota: {}) salva com sucesso para o usuário {}", rating, userPhone);
 
-            whatsAppService.sendMessage(userPhone, "Obrigado! 😊\n\nAtendimento encerrado. Sempre que precisar, estarei por aqui.");
+            whatsAppService.sendMessage(userPhone, "*Obrigado! 😊*\nAtendimento encerrado. Sempre que precisar, estarei por aqui.");
             chatStateService.clearAll(userPhone);
 
         } catch (NumberFormatException e) {
