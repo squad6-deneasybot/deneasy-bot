@@ -222,6 +222,17 @@ public class WhatsAppFormatterService {
                 V. Voltar ao Menu Principal""";
     }
 
+    public String formatReportPeriodMenu() {
+        return """
+            Entendido. Qual período você deseja analisar?
+
+            1️⃣ Mês Atual (até hoje)
+            2️⃣ Mês Anterior (completo)
+            3️⃣ Personalizado (Últimos X dias)
+
+            V. Voltar ao Menu Principal""";
+    }
+
     public String formatWishlistPrompt() {
         return """
                 Entendido! Sua opinião é muito importante para nós. 💡

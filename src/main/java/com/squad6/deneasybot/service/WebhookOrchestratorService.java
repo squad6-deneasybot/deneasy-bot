@@ -10,6 +10,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import com.squad6.deneasybot.repository.UserRepository;
 
+import java.time.LocalDate;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -21,6 +23,7 @@ public class WebhookOrchestratorService {
     private final CompanyService companyService;
     private final UserService userService;
     private final MenuService menuService;
+    private final ReportService reportService;
     private final FaqService faqService;
 
     private final ChatStateService chatStateService;
@@ -39,6 +42,7 @@ public class WebhookOrchestratorService {
         this.companyService = companyService;
         this.userService = userService;
         this.menuService = menuService;
+        this.reportService = reportService;
         this.faqService = faqService;
         this.chatStateService = chatStateService;
         this.jwtUtil = jwtUtil;
@@ -90,6 +94,12 @@ public class WebhookOrchestratorService {
                     case AUTHENTICATED:
                         handleStateAuthenticated(userPhone, messageText);
                         break;
+                    case AWAITING_REPORT_PERIOD_CHOICE:
+                        handleStateAwaitingReportPeriodChoice(userPhone, messageText);
+                        break;
+                    case AWAITING_REPORT_CUSTOM_DAYS:
+                        handleStateAwaitingReportCustomDays(userPhone, messageText);
+                        break;
                     case AWAITING_POST_ACTION:
                         handleStateAwaitingPostAction(userPhone, messageText);
                         break;
@@ -126,15 +136,12 @@ public class WebhookOrchestratorService {
                     case AWAITING_CRUD_POST_ACTION:
                         handleStateCrudPostAction(userPhone, messageText);
                         break;
-
-                    // --- MUDANÇAS ADICIONADAS AQUI ---
                     case AWAITING_FEEDBACK_TEXT:
                         handleStateAwaitingFeedbackText(userPhone, messageText);
                         break;
                     case AWAITING_FEEDBACK_RATING:
                         handleStateAwaitingFeedbackRating(userPhone, messageText);
                         break;
-                    // --- FIM DAS MUDANÇAS ---
                 }
             } catch (Exception e) {
                 logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
@@ -142,7 +149,8 @@ public class WebhookOrchestratorService {
                 if (currentState == ChatState.AUTHENTICATED ||
                         currentState == ChatState.AWAITING_POST_ACTION ||
                         currentState == ChatState.AWAITING_CRUD_MENU_CHOICE ||
-                        currentState == ChatState.AWAITING_CRUD_POST_ACTION) // Adicionado
+                        currentState == ChatState.AWAITING_CRUD_POST_ACTION ||
+                        currentState == ChatState.AWAITING_REPORT_PERIOD_CHOICE)
                 {
                     UserProfile profile = getUserProfile(userPhone);
                     whatsAppService.sendMessage(userPhone, "Ocorreu um erro inesperado. Estamos te retornando ao menu principal.\n\n" + formatterService.formatMenu(profile));
@@ -281,14 +289,14 @@ public class WebhookOrchestratorService {
     }
 
     private void handleStateAuthenticated(String userPhone, String messageText) {
-
         try {
             String actionResponse = menuService.processMenuOption(userPhone, messageText);
             whatsAppService.sendMessage(userPhone, actionResponse);
+
             String option = messageText.trim();
 
             if ("1".equals(option)) {
-                transitionToMainMenuPostAction(userPhone);
+                chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_PERIOD_CHOICE);
 
             } else if ("2".equals(option)) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_FAQ_CHOICE);
@@ -313,6 +321,82 @@ public class WebhookOrchestratorService {
         }
     }
 
+    private void handleStateAwaitingReportPeriodChoice(String userPhone, String messageText) {
+        User user = getUserByPhone(userPhone);
+        String appKey = user.getCompany().getAppKey();
+        String appSecret = user.getCompany().getAppSecret();
+        String option = messageText.trim().toUpperCase();
+
+        LocalDate startDate;
+        LocalDate endDate = LocalDate.now();
+
+        switch (option) {
+            case "1":
+                startDate = endDate.withDayOfMonth(1);
+                generateAndSendReport(userPhone, appKey, appSecret, startDate, endDate);
+                break;
+
+            case "2":
+                startDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+                endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
+                generateAndSendReport(userPhone, appKey, appSecret, startDate, endDate);
+                break;
+
+            case "3":
+                whatsAppService.sendMessage(userPhone, "Digite o número de dias que você quer analisar (Até 90 dias):");
+                chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_CUSTOM_DAYS);
+                break;
+
+            case "V":
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                whatsAppService.sendMessage(userPhone, formatterService.formatMenu(user.getProfile()));
+                break;
+
+            default:
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatReportPeriodMenu());
+                break;
+        }
+    }
+
+    private void handleStateAwaitingReportCustomDays(String userPhone, String messageText) {
+        try {
+            int days = Integer.parseInt(messageText.trim());
+            if (days <= 0 || days > 90) {
+                whatsAppService.sendMessage(userPhone, "⚠️ Por favor, digite um número válido entre 1 e 90.");
+                return;
+            }
+
+            User user = getUserByPhone(userPhone);
+            String appKey = user.getCompany().getAppKey();
+            String appSecret = user.getCompany().getAppSecret();
+
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(days - 1);
+
+            generateAndSendReport(userPhone, appKey, appSecret, startDate, endDate);
+
+        } catch (NumberFormatException e) {
+            whatsAppService.sendMessage(userPhone, "⚠️ Formato inválido. Digite apenas o número de dias (ex: 15).");
+        }
+    }
+
+    private void generateAndSendReport(String userPhone, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
+        try {
+            whatsAppService.sendMessage(userPhone, "⏳ Gerando relatório, por favor aguarde...");
+
+            ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, startDate, endDate);
+            String formattedReport = formatterService.formatSimpleReport(report);
+
+            whatsAppService.sendMessage(userPhone, formattedReport);
+
+            transitionToMainMenuPostAction(userPhone);
+
+        } catch (Exception e) {
+            logger.error("Erro ao gerar relatório para {}: {}", userPhone, e.getMessage(), e);
+            whatsAppService.sendMessage(userPhone, "❌ Ocorreu um erro ao gerar o relatório. Tente novamente mais tarde.");
+            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+        }
+    }
 
     private void handleStateAwaitingPostAction(String userPhone, String messageText) {
         UserProfile profile = getUserProfile(userPhone);
@@ -363,7 +447,7 @@ public class WebhookOrchestratorService {
     }
 
     private User getUserByPhone(String userPhone) {
-        return userRepository.findByPhone(userPhone)
+        return userRepository.findByPhoneWithCompany(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone));
     }
 
