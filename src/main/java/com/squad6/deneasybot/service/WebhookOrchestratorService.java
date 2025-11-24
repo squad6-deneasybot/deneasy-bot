@@ -194,7 +194,7 @@ public class WebhookOrchestratorService {
             logger.info("Usuário {} não encontrado. Iniciando fluxo de registro.", userPhone);
             chatStateService.setState(userPhone, ChatState.AWAITING_APP_KEY);
             chatStateService.saveData(userPhone, "context", Context.REGISTRATION);
-            whatsAppService.sendMessage(userPhone, "*Olá! 👋 Bem-vindo (a) ao DeneasyBot.*\n\nComo é sua primeira vez por aqui, por favor, digite sua *App Key* da empresa registrada no ERP:");
+            whatsAppService.sendMessage(userPhone, "*Olá! 👋 Bem-vindo(a) ao DeneasyBot.*\n\nComo é sua primeira vez por aqui, por favor, digite sua *App Key* da empresa registrada no ERP:");
         }
     }
 
