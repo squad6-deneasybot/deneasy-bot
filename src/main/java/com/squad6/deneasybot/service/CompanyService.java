@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class CompanyService {
@@ -46,12 +45,6 @@ public class CompanyService {
         Company company = companyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
 
-        companyRepository.findByAppKey(companyDetails.getAppKey())
-                .filter(existingCompany -> !existingCompany.getId().equals(id))
-                .ifPresent(existingCompany -> {
-                    throw new DataIntegrityException("Já existe uma empresa cadastrada com esta App Key.");
-                });
-
         company.setName(companyDetails.getCompanyName());
         company.setAppKey(companyDetails.getAppKey());
         company.setAppSecret(companyDetails.getAppSecret());
@@ -59,27 +52,25 @@ public class CompanyService {
         Company updatedCompany = companyRepository.save(company);
         return new CompanyDTO(updatedCompany);
     }
+
     @Transactional
     public void deleteCompany(Long id) {
         logger.warn("Tentativa de deletar empresa ID {}", id);
-
-        Company company = companyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
-
+        if (!companyRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Empresa com ID " + id + " não encontrada.");
+        }
         try {
-            companyRepository.delete(company);
+            companyRepository.deleteById(id);
             logger.info("Empresa ID {} deletada com sucesso.", id);
         } catch (Exception e) {
             logger.error("Erro ao deletar empresa ID {}, {}", id, e.getMessage());
-            throw new DataIntegrityException("Não foi possível deletar a empresa.");
+            throw new DataIntegrityException("Não foi possível deletar a empresa. Verifique se há registros vinculados.");
         }
     }
 
     @Transactional(readOnly = true)
     public List<CompanyDTO> getAllCompanies() {
-        return companyRepository.findAll().stream()
-                .map(CompanyDTO::new)
-                .collect(Collectors.toList());
+        return companyRepository.findAllWithManager();
     }
 
     @Transactional(readOnly = true)
