@@ -19,7 +19,6 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
-@Profile("dev")
 public class SecurityConfig {
 
     private final JwtAdminAuthFilter jwtAdminAuthFilter;
@@ -47,7 +46,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        String frontendUrl = System.getenv("FRONTEND_URL");
+        configuration.setAllowedOrigins(List.of(frontendUrl != null ? frontendUrl : "http://localhost:5173"));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "x-requested-with", "X-Code"));
