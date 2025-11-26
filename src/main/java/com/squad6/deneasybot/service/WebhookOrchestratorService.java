@@ -378,7 +378,7 @@ public class WebhookOrchestratorService {
 
             String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
             String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
-            String companyName = user.getCompany().getName(); // Recupera nome
+            String companyName = user.getCompany().getName();
 
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(days - 1);
