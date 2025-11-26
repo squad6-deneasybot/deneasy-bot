@@ -61,11 +61,50 @@ public class EmailService {
             helper.setText(htmlContent, true);
 
             javaMailSender.send(message);
-            logger.info("E-mail enviado (interceptado pelo Mailtrap) para {}", toEmail);
+            logger.info("E-mail enviado para {}", toEmail);
 
         } catch (MessagingException e) {
             logger.error("Falha ao enviar e-mail para {}: {}", toEmail, e.getMessage());
             throw new RuntimeException("Não foi possível enviar o e-mail de verificação.", e);
+        }
+    }
+
+    public void sendReport(String toEmail, String userName, String reportHtmlBody) {
+        if (toEmail == null || toEmail.trim().isEmpty()) {
+            logger.error("Tentativa de enviar relatório para e-mail vazio ou nulo.");
+            return;
+        }
+
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("DeneasyBot - Seu Relatório Automático Chegou 📊");
+
+            String safeUserName = HtmlUtils.htmlEscape(userName != null ? userName : "Cliente");
+
+            String htmlContent = """
+                <div style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+                  <h2 style='color: #0056b3;'>Olá, %s!</h2>
+                  <p>Aqui está o seu relatório financeiro automático:</p>
+                  <div style='background-color: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin: 20px 0;'>
+                    %s
+                  </div>
+                  <hr style='border: 0; border-top: 1px solid #eee; margin: 20px 0;'/>
+                  <p style='font-size: 0.9em; color: #666;'>
+                    Para alterar a frequência de recebimento, acesse o menu do <strong>DeneasyBot</strong> no WhatsApp.
+                  </p>
+                </div>
+                """.formatted(safeUserName, reportHtmlBody);
+
+            helper.setText(htmlContent, true);
+            javaMailSender.send(message);
+            logger.info("Relatório financeiro enviado com sucesso para {}", toEmail);
+
+        } catch (MessagingException e) {
+            logger.error("Erro ao enviar relatório por e-mail para {}", toEmail, e);
         }
     }
 
