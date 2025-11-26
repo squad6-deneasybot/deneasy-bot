@@ -2,18 +2,20 @@ package com.squad6.deneasybot.service;
 
 import com.squad6.deneasybot.exception.*;
 import com.squad6.deneasybot.model.*;
+import com.squad6.deneasybot.repository.ReportSubscriptionRepository;
+import com.squad6.deneasybot.repository.UserRepository;
 import com.squad6.deneasybot.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
-import com.squad6.deneasybot.repository.UserRepository;
 
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 @Service
 public class WebhookOrchestratorService {
@@ -33,13 +35,15 @@ public class WebhookOrchestratorService {
     private final UserRepository userRepository;
     private final FeedbackService feedbackService;
     private final EncryptionService encryptionService;
+    private final ReportSubscriptionRepository subscriptionRepository;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
                                       MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
                                       WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService,
-                                      EncryptionService encryptionService) {
+                                      EncryptionService encryptionService,
+                                      ReportSubscriptionRepository subscriptionRepository) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
@@ -53,6 +57,7 @@ public class WebhookOrchestratorService {
         this.userRepository = userRepository;
         this.feedbackService = feedbackService;
         this.encryptionService = encryptionService;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     @Async
@@ -145,6 +150,9 @@ public class WebhookOrchestratorService {
                     case AWAITING_FEEDBACK_RATING:
                         handleStateAwaitingFeedbackRating(userPhone, messageText);
                         break;
+                    case AWAITING_SUBSCRIPTION_FREQUENCY:
+                        handleStateAwaitingSubscriptionFrequency(userPhone, messageText);
+                        break;
                 }
             } catch (Exception e) {
                 logger.error("Erro inesperado ao processar mensagem para {}: {}", userPhone, e.getMessage(), e);
@@ -171,6 +179,195 @@ public class WebhookOrchestratorService {
         }
     }
 
+    private void handleStateAuthenticated(String userPhone, String messageText) {
+        try {
+            String actionResponse = menuService.processMenuOption(userPhone, messageText);
+            whatsAppService.sendMessage(userPhone, actionResponse);
+
+            String option = messageText.trim();
+
+            if ("1".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_PERIOD_CHOICE);
+
+            } else if ("2".equals(option)) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_FAQ_CHOICE);
+
+            } else if ("3".equals(option)) {
+                chatStateService.clearAll(userPhone);
+
+            } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
+
+            } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.EMPLOYEE) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
+            } else if ("5".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
+            } else if ("6".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_SUBSCRIPTION_FREQUENCY);
+            } else {
+                throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
+            }
+
+        } catch (IllegalArgumentException e) {
+            logger.warn("Opção inválida '{}' para usuário {}", messageText, userPhone);
+            UserProfile profile = getUserProfile(userPhone);
+            whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
+            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+        }
+    }
+
+    private void handleStateAwaitingSubscriptionFrequency(String userPhone, String messageText) {
+        String option = messageText.trim().toUpperCase();
+        User user = getUserByPhone(userPhone);
+
+        if ("V".equals(option)) {
+            transitionToMainMenuPostAction(userPhone);
+            return;
+        }
+
+        Frequency frequency = null;
+        boolean isCancel = false;
+
+        switch (option) {
+            case "1": frequency = Frequency.WEEKLY; break;
+            case "2": frequency = Frequency.BIWEEKLY; break;
+            case "3": frequency = Frequency.MONTHLY; break;
+            case "4": isCancel = true; break;
+            default:
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatFrequencyMenu());
+                return;
+        }
+
+        if (isCancel) {
+            subscriptionRepository.findByUser(user).ifPresent(subscriptionRepository::delete);
+            whatsAppService.sendMessage(userPhone, "✅ Assinatura de relatório automático cancelada.");
+        } else {
+            Frequency finalFrequency = frequency;
+            ReportSubscription sub = subscriptionRepository.findByUser(user)
+                    .orElse(new ReportSubscription(user, finalFrequency));
+
+            sub.setFrequency(finalFrequency);
+            subscriptionRepository.save(sub);
+            whatsAppService.sendMessage(userPhone, formatterService.formatSubscriptionSuccess(finalFrequency.name()));
+        }
+
+        transitionToMainMenuPostAction(userPhone);
+    }
+
+    private void handleStateAwaitingReportPeriodChoice(String userPhone, String messageText) {
+        User user = getUserByPhone(userPhone);
+        String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
+        String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
+        String companyName = user.getCompany().getName();
+        String option = messageText.trim().toUpperCase();
+        LocalDate startDate;
+        LocalDate endDate = LocalDate.now();
+
+        switch (option) {
+            case "1":
+                startDate = endDate.withDayOfMonth(1);
+                generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
+                break;
+            case "2":
+                startDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+                endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
+                generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
+                break;
+            case "3":
+                whatsAppService.sendMessage(userPhone, "Digite o número de dias que você quer analisar (Até 90 dias):");
+                chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_CUSTOM_DAYS);
+                break;
+            case "V":
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                whatsAppService.sendMessage(userPhone, formatterService.formatMenu(user.getProfile()));
+                break;
+            default:
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatReportPeriodMenu());
+                break;
+        }
+    }
+
+    private void handleStateAwaitingReportCustomDays(String userPhone, String messageText) {
+        try {
+            int days = Integer.parseInt(messageText.trim());
+            if (days <= 0 || days > 90) {
+                whatsAppService.sendMessage(userPhone, "⚠️ Por favor, digite um número válido entre 1 e 90.");
+                return;
+            }
+            User user = getUserByPhone(userPhone);
+            String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
+            String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
+            String companyName = user.getCompany().getName();
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(days - 1);
+            generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
+        } catch (NumberFormatException e) {
+            whatsAppService.sendMessage(userPhone, "⚠️ Formato inválido. Digite apenas o número de dias (ex: 15).");
+        }
+    }
+
+    private void generateAndSendReport(String userPhone, String companyName, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
+        try {
+            whatsAppService.sendMessage(userPhone, "⏳ Só um instante... gerando seu relatório!");
+            ReportSimpleDTO report = reportService.generateSimpleReport(companyName, appKey, appSecret, startDate, endDate);
+            String formattedReport = formatterService.formatSimpleReport(report);
+            whatsAppService.sendMessage(userPhone, formattedReport);
+            transitionToMainMenuPostAction(userPhone);
+        } catch (Exception e) {
+            logger.error("Erro ao gerar relatório para {}: {}", userPhone, e.getMessage(), e);
+            whatsAppService.sendMessage(userPhone, "❌ Ocorreu um erro ao gerar o relatório. Tente novamente mais tarde.");
+            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+        }
+    }
+
+    private void handleStateAwaitingPostAction(String userPhone, String messageText) {
+        UserProfile profile = getUserProfile(userPhone);
+        switch (messageText.trim()) {
+            case "1":
+                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
+                String menu = formatterService.formatMenu(profile);
+                whatsAppService.sendMessage(userPhone, menu);
+                break;
+            case "2":
+                chatStateService.clearAll(userPhone);
+                String humanContactMessage = """
+                        Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número:\s
+                        
+                        *+55 79 99999-9999*
+                        
+                        Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋""";
+                whatsAppService.sendMessage(userPhone, humanContactMessage);
+                break;
+            case "3":
+                logger.info("Usuário {} optou por encerrar. Solicitando feedback de texto.", userPhone);
+                whatsAppService.sendMessage(userPhone, formatterService.formatFeedbackTextPrompt());
+                chatStateService.setState(userPhone, ChatState.AWAITING_FEEDBACK_TEXT);
+                break;
+            default:
+                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatPostActionMenu());
+                break;
+        }
+    }
+
+    private void transitionToMainMenuPostAction(String userPhone) {
+        chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
+        whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
+    }
+
+    private void transitionToCrudPostAction(String userPhone) {
+        chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_POST_ACTION);
+        whatsAppService.sendMessage(userPhone, formatterService.formatCrudPostActionMenu());
+    }
+
+    private void transitionToCrudMenu(String userPhone, UserProfile profile) {
+        chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
+        whatsAppService.sendMessage(userPhone, formatterService.formatCrudMenu());
+    }
+
+    private User getUserByPhone(String userPhone) {
+        return userRepository.findByPhoneWithCompany(userPhone)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone));
+    }
 
     private void handleStateStart(String userPhone, String messageText) {
         try {
@@ -289,176 +486,6 @@ public class WebhookOrchestratorService {
             logger.warn("Código inválido para {}.", userPhone);
             whatsAppService.sendMessage(userPhone, "❌ Código inválido. Por favor, tente novamente:");
         }
-    }
-
-    private void handleStateAuthenticated(String userPhone, String messageText) {
-        try {
-            String actionResponse = menuService.processMenuOption(userPhone, messageText);
-            whatsAppService.sendMessage(userPhone, actionResponse);
-
-            String option = messageText.trim();
-
-            if ("1".equals(option)) {
-                chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_PERIOD_CHOICE);
-
-            } else if ("2".equals(option)) {
-                chatStateService.setState(userPhone, ChatState.AWAITING_FAQ_CHOICE);
-
-            } else if ("3".equals(option)) {
-                chatStateService.clearAll(userPhone);
-
-            } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
-                chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
-
-            } else if ("4".equals(option) && getUserProfile(userPhone) == UserProfile.EMPLOYEE) {
-                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
-            } else if ("5".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
-                chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
-            } else {
-                throw new IllegalArgumentException("Opção não tratada no switch de estado do Orchestrator: " + option);
-            }
-
-        } catch (IllegalArgumentException e) {
-            logger.warn("Opção inválida '{}' para usuário {}", messageText, userPhone);
-            UserProfile profile = getUserProfile(userPhone);
-            whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatMenu(profile));
-            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
-        }
-    }
-
-    private void handleStateAwaitingReportPeriodChoice(String userPhone, String messageText) {
-        User user = getUserByPhone(userPhone);
-
-        String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
-        String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
-        String companyName = user.getCompany().getName();
-
-        String option = messageText.trim().toUpperCase();
-
-        LocalDate startDate;
-        LocalDate endDate = LocalDate.now();
-
-        switch (option) {
-            case "1":
-                startDate = endDate.withDayOfMonth(1);
-                generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
-                break;
-
-            case "2":
-                startDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
-                endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
-                generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
-                break;
-
-            case "3":
-                whatsAppService.sendMessage(userPhone, "Digite o número de dias que você quer analisar (Até 90 dias):");
-                chatStateService.setState(userPhone, ChatState.AWAITING_REPORT_CUSTOM_DAYS);
-                break;
-
-            case "V":
-                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
-                whatsAppService.sendMessage(userPhone, formatterService.formatMenu(user.getProfile()));
-                break;
-
-            default:
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatReportPeriodMenu());
-                break;
-        }
-    }
-
-    private void handleStateAwaitingReportCustomDays(String userPhone, String messageText) {
-        try {
-            int days = Integer.parseInt(messageText.trim());
-            if (days <= 0 || days > 90) {
-                whatsAppService.sendMessage(userPhone, "⚠️ Por favor, digite um número válido entre 1 e 90.");
-                return;
-            }
-
-            User user = getUserByPhone(userPhone);
-
-            String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
-            String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
-            String companyName = user.getCompany().getName();
-
-            LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(days - 1);
-
-            generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
-
-        } catch (NumberFormatException e) {
-            whatsAppService.sendMessage(userPhone, "⚠️ Formato inválido. Digite apenas o número de dias (ex: 15).");
-        }
-    }
-
-    private void generateAndSendReport(String userPhone, String companyName, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
-        try {
-            whatsAppService.sendMessage(userPhone, "⏳ Só um instante... gerando seu relatório!");
-
-            ReportSimpleDTO report = reportService.generateSimpleReport(companyName, appKey, appSecret, startDate, endDate);
-            String formattedReport = formatterService.formatSimpleReport(report);
-
-            whatsAppService.sendMessage(userPhone, formattedReport);
-
-            transitionToMainMenuPostAction(userPhone);
-
-        } catch (Exception e) {
-            logger.error("Erro ao gerar relatório para {}: {}", userPhone, e.getMessage(), e);
-            whatsAppService.sendMessage(userPhone, "❌ Ocorreu um erro ao gerar o relatório. Tente novamente mais tarde.");
-            chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
-        }
-    }
-
-    private void handleStateAwaitingPostAction(String userPhone, String messageText) {
-        UserProfile profile = getUserProfile(userPhone);
-
-        switch (messageText.trim()) {
-            case "1":
-                chatStateService.setState(userPhone, ChatState.AUTHENTICATED);
-                String menu = formatterService.formatMenu(profile);
-                whatsAppService.sendMessage(userPhone, menu);
-                break;
-
-            case "2":
-                chatStateService.clearAll(userPhone);
-                String humanContactMessage = """
-                        Para prosseguir com o *atendimento humano*, por favor, entre em contato com o número:\s
-                        
-                        *+55 79 99999-9999*
-                        
-                        Agradecemos seu contato. Obrigado por usar o DeneasyBot!👋""";
-                whatsAppService.sendMessage(userPhone, humanContactMessage);
-                break;
-
-            case "3":
-                logger.info("Usuário {} optou por encerrar. Solicitando feedback de texto.", userPhone);
-                whatsAppService.sendMessage(userPhone, formatterService.formatFeedbackTextPrompt());
-                chatStateService.setState(userPhone, ChatState.AWAITING_FEEDBACK_TEXT);
-                break;
-
-            default:
-                whatsAppService.sendMessage(userPhone, formatterService.formatFallbackError() + "\n\n" + formatterService.formatPostActionMenu());
-                break;
-        }
-    }
-
-    private void transitionToMainMenuPostAction(String userPhone) {
-        chatStateService.setState(userPhone, ChatState.AWAITING_POST_ACTION);
-        whatsAppService.sendMessage(userPhone, formatterService.formatPostActionMenu());
-    }
-
-    private void transitionToCrudPostAction(String userPhone) {
-        chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_POST_ACTION);
-        whatsAppService.sendMessage(userPhone, formatterService.formatCrudPostActionMenu());
-    }
-
-    private void transitionToCrudMenu(String userPhone, UserProfile profile) {
-        chatStateService.setState(userPhone, ChatState.AWAITING_CRUD_MENU_CHOICE);
-        whatsAppService.sendMessage(userPhone, formatterService.formatCrudMenu());
-    }
-
-    private User getUserByPhone(String userPhone) {
-        return userRepository.findByPhoneWithCompany(userPhone)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado pelo telefone: " + userPhone));
     }
 
     private void handleStateCrudMenuChoice(String userPhone, String messageText) {
