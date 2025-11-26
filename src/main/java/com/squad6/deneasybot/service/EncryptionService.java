@@ -81,7 +81,7 @@ public class EncryptionService {
 
     private SecretKey getSecretKey() throws Exception {
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-        KeySpec spec = new PBEKeySpec(secretKeyStr.toCharArray(), saltStr.getBytes(), ITERATION_COUNT, KEY_LENGTH);
+        KeySpec spec = new PBEKeySpec(secretKeyStr.toCharArray(), saltStr.getBytes(StandardCharsets.UTF_8), ITERATION_COUNT, KEY_LENGTH);
         SecretKey tmp = factory.generateSecret(spec);
         return new SecretKeySpec(tmp.getEncoded(), "AES");
     }
