@@ -2,9 +2,7 @@ package com.squad6.deneasybot.service;
 
 import com.squad6.deneasybot.model.Evaluation;
 import com.squad6.deneasybot.model.EvaluationDTO;
-import com.squad6.deneasybot.model.UserProfile;
 import com.squad6.deneasybot.repository.EvaluationRepository;
-import org.springframework.security.access.AccessDeniedException;
 
 import com.squad6.deneasybot.model.User;
 import com.squad6.deneasybot.model.Wishlist;
@@ -53,12 +51,7 @@ public class FeedbackService {
         return evaluationRepository.save(evaluation);
     }
 
-    @Transactional(readOnly = true)
-    public List<EvaluationDTO> getAllEvaluations(User manager) {
-        if (manager.getProfile() != UserProfile.MANAGER) {
-            throw new AccessDeniedException("Acesso negado. Apenas gestores podem visualizar as avaliações.");
-        }
-
+    public List<EvaluationDTO> getAllEvaluations() {
         return evaluationRepository.findAllByOrderByCreatedAtDesc().stream()
                 .map(EvaluationDTO::new)
                 .collect(Collectors.toList());

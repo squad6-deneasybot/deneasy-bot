@@ -37,9 +37,8 @@ public class FeedbackController {
 
 
     @GetMapping("/evaluation")
-    public ResponseEntity<List<EvaluationDTO>> getAllEvaluations(@RequestHeader("Authorization") String authHeader) {
-        User manager = getAuthenticatedUser(authHeader);
-        List<EvaluationDTO> evaluations = feedbackService.getAllEvaluations(manager);
+    public ResponseEntity<List<EvaluationDTO>> getAllEvaluations() {
+        List<EvaluationDTO> evaluations = feedbackService.getAllEvaluations();
         return ResponseEntity.ok(evaluations);
     }
 

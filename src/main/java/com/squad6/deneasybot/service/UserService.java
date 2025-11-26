@@ -95,7 +95,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserDTO updateUser(Long userIdToUpdate, UserDTO updateData, User authenticatedUser) {
+    public void updateUser(Long userIdToUpdate, UserDTO updateData, User authenticatedUser) {
         User userToUpdate = userRepository.findById(userIdToUpdate)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário com ID " + userIdToUpdate + " não encontrado."));
 
@@ -123,7 +123,7 @@ public class UserService {
         }
 
         User updatedUser = userRepository.save(userToUpdate);
-        return new UserDTO(updatedUser);
+        new UserDTO(updatedUser);
     }
 
     @Transactional
@@ -144,5 +144,32 @@ public class UserService {
         }
 
         userRepository.delete(employee);
+    }
+
+    @Transactional
+    public UserDTO updateManager(Long userId, UserDTO updateData) {
+        User userToUpdate = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Gestor com ID " + userId + " não encontrado."));
+
+        userToUpdate.setName(updateData.getName());
+        userToUpdate.setPhone(updateData.getPhone());
+
+        if (!userToUpdate.getEmail().equals(updateData.getEmail())) {
+            userRepository.findByEmail(updateData.getEmail()).ifPresent(existing -> {
+                throw new DataIntegrityException("O e-mail '" + updateData.getEmail() + "' já está em uso.");
+            });
+            userToUpdate.setEmail(updateData.getEmail());
+        }
+
+        return new UserDTO(userRepository.save(userToUpdate));
+    }
+
+    @Transactional
+    public void deleteManager(Long userId) {
+        if (userRepository.existsById(userId)) {
+            userRepository.deleteById(userId);
+        } else {
+            throw new ResourceNotFoundException("Gestor não encontrado.");
+        }
     }
 }

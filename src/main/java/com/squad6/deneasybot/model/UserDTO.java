@@ -1,6 +1,7 @@
 package com.squad6.deneasybot.model;
 
 public class UserDTO {
+    private Long id;
     private Long companyId;
     private String name;
     private String phone;
@@ -11,6 +12,7 @@ public class UserDTO {
     public UserDTO() {}
 
     public UserDTO(User user) {
+        this.id = user.getId();
         if (user.getCompany() != null) {
             this.companyId = user.getCompany().getId();
         }
@@ -22,6 +24,9 @@ public class UserDTO {
             this.session_token = user.getSessionToken();
         }
     }
+
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public Long getCompanyId() { return companyId; }
     public void setCompanyId(Long companyId) { this.companyId = companyId; }
