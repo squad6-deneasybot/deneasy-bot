@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -63,19 +62,19 @@ public class ReportScheduler {
 
         logger.info("Job de relatórios finalizado. Enviados: {}, Erros: {}", emailsSent, errors);
     }
-
+    
     private boolean shouldSend(ReportSubscription sub, LocalDate today) {
         if (sub.getLastSentAt() == null) {
             return true;
         }
 
-        long daysSinceLast = ChronoUnit.DAYS.between(sub.getLastSentAt(), today);
-
-        return switch (sub.getFrequency()) {
-            case WEEKLY -> daysSinceLast >= 7;
-            case BIWEEKLY -> daysSinceLast >= 15;
-            case MONTHLY -> daysSinceLast >= 30;
+        LocalDate nextSendDate = switch (sub.getFrequency()) {
+            case WEEKLY -> sub.getLastSentAt().plusWeeks(1);
+            case BIWEEKLY -> sub.getLastSentAt().plusDays(15);
+            case MONTHLY -> sub.getLastSentAt().plusMonths(1);
         };
+
+        return !today.isBefore(nextSendDate);
     }
 
     private void sendReportForSubscription(ReportSubscription sub, LocalDate today) {
@@ -112,9 +111,9 @@ public class ReportScheduler {
 
     private LocalDate calculateStartDate(Frequency freq, LocalDate endDate) {
         return switch (freq) {
-            case WEEKLY -> endDate.minusDays(7);
+            case WEEKLY -> endDate.minusWeeks(1);
             case BIWEEKLY -> endDate.minusDays(15);
-            case MONTHLY -> endDate.minusDays(30);
+            case MONTHLY -> endDate.minusMonths(1);
         };
     }
 }
