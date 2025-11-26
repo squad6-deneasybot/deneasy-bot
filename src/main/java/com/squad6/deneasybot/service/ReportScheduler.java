@@ -62,7 +62,7 @@ public class ReportScheduler {
 
         logger.info("Job de relatórios finalizado. Enviados: {}, Erros: {}", emailsSent, errors);
     }
-    
+
     private boolean shouldSend(ReportSubscription sub, LocalDate today) {
         if (sub.getLastSentAt() == null) {
             return true;

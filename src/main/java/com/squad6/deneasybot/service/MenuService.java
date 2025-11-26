@@ -1,6 +1,5 @@
 package com.squad6.deneasybot.service;
 
-import com.squad6.deneasybot.model.ReportSimpleDTO;
 import com.squad6.deneasybot.model.User;
 import com.squad6.deneasybot.model.UserProfile;
 import com.squad6.deneasybot.repository.UserRepository;
@@ -67,6 +66,12 @@ public class MenuService {
             case "5":
                 if (profile == UserProfile.MANAGER) {
                     return whatsAppFormatterService.formatWishlistPrompt();
+                } else {
+                    throw new IllegalArgumentException("Opção inválida.");
+                }
+            case "6":
+                if (profile == UserProfile.MANAGER) {
+                    return whatsAppFormatterService.formatFrequencyMenu();
                 } else {
                     throw new IllegalArgumentException("Opção inválida.");
                 }
