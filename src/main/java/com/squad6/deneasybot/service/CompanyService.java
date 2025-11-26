@@ -27,15 +27,8 @@ public class CompanyService {
     @Transactional
     public Company createCompany(CompanyDTO dto) {
         logger.info("Criando nova empresa no banco: {}", dto.getCompanyName());
-
-        // Nota: A validação findByAppKey pode precisar de ajuste se a chave estiver criptografada,
-        // pois a busca exata falhará se o IV for aleatório.
-        // Assumindo que a validação é feita antes ou o risco de colisão é gerido de outra forma.
-
         Company company = new Company();
         company.setName(dto.getCompanyName());
-
-        // Criptografia antes de salvar (Fluxo de Escrita)
         company.setAppKey(encryptionService.encrypt(dto.getAppKey()));
         company.setAppSecret(encryptionService.encrypt(dto.getAppSecret()));
 
@@ -50,8 +43,6 @@ public class CompanyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
 
         company.setName(companyDetails.getCompanyName());
-
-        // Criptografia antes de salvar (Fluxo de Escrita)
         company.setAppKey(encryptionService.encrypt(companyDetails.getAppKey()));
         company.setAppSecret(encryptionService.encrypt(companyDetails.getAppSecret()));
 

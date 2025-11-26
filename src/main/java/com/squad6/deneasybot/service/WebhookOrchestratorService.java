@@ -329,10 +329,9 @@ public class WebhookOrchestratorService {
     private void handleStateAwaitingReportPeriodChoice(String userPhone, String messageText) {
         User user = getUserByPhone(userPhone);
 
-        // Descriptografar chaves antes do uso
         String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
         String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
-        String companyName = user.getCompany().getName(); // Recupera nome
+        String companyName = user.getCompany().getName();
 
         String option = messageText.trim().toUpperCase();
 
@@ -377,7 +376,6 @@ public class WebhookOrchestratorService {
 
             User user = getUserByPhone(userPhone);
 
-            // Descriptografar chaves antes do uso
             String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
             String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
             String companyName = user.getCompany().getName(); // Recupera nome

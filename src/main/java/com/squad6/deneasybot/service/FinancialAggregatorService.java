@@ -32,7 +32,6 @@ public class FinancialAggregatorService {
         this.omieErpClient = omieErpClient;
     }
 
-    // Adicionado parâmetro 'companyName'
     public ReportSimpleDTO aggregateReportData(String companyName, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
 
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate, endDate);
@@ -93,7 +92,7 @@ public class FinancialAggregatorService {
 
         return new ReportSimpleDTO(
                 reportType,
-                companyName, // Usa o nome passado via parâmetro
+                companyName,
                 startDate,
                 endDate,
                 receitaOp,

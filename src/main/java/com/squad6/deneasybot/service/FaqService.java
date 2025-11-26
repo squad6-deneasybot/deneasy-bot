@@ -65,7 +65,6 @@ public class FaqService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
         Company company = user.getCompany();
 
-        // Descriptografia (Fluxo de Leitura)
         String appKey = encryptionService.decrypt(company.getAppKey());
         String appSecret = encryptionService.decrypt(company.getAppSecret());
 

@@ -32,8 +32,8 @@ jwt:
 
 deneasy:
   encryption:
-    secret-key: ${DENEASY_ENCRYPTION_SECRET} # Defina no .env (32 bytes)
-    salt: ${DENEASY_ENCRYPTION_SALT}       # Defina no .env (16 bytes)
+    secret-key: ${DENEASY_ENCRYPTION_SECRET}
+    salt: ${DENEASY_ENCRYPTION_SALT}
 
 omie:
   api:

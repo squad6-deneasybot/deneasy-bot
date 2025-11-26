@@ -18,9 +18,9 @@ import java.util.Base64;
 public class EncryptionService {
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int GCM_TAG_LENGTH = 128; // em bits
-    private static final int GCM_IV_LENGTH = 12;   // em bytes
-    private static final int KEY_LENGTH = 256;     // em bits
+    private static final int GCM_TAG_LENGTH = 128;
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int KEY_LENGTH = 256;
     private static final int ITERATION_COUNT = 65536;
 
     @Value("${deneasy.encryption.secret-key}")
@@ -33,20 +33,16 @@ public class EncryptionService {
         if (dataToEncrypt == null) return null;
 
         try {
-            // Gerar IV aleatório
             byte[] iv = new byte[GCM_IV_LENGTH];
             new SecureRandom().nextBytes(iv);
 
-            // Preparar Chave e Cipher
             SecretKey key = getSecretKey();
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
             cipher.init(Cipher.ENCRYPT_MODE, key, parameterSpec);
 
-            // Criptografar
             byte[] cipherText = cipher.doFinal(dataToEncrypt.getBytes(StandardCharsets.UTF_8));
 
-            // Concatenar IV + CipherText para armazenar junto
             byte[] cipherTextWithIv = new byte[iv.length + cipherText.length];
             System.arraycopy(iv, 0, cipherTextWithIv, 0, iv.length);
             System.arraycopy(cipherText, 0, cipherTextWithIv, iv.length, cipherText.length);
@@ -64,15 +60,12 @@ public class EncryptionService {
         try {
             byte[] cipherTextWithIv = Base64.getDecoder().decode(dataToDecrypt);
 
-            // Extrair IV
             byte[] iv = new byte[GCM_IV_LENGTH];
             System.arraycopy(cipherTextWithIv, 0, iv, 0, iv.length);
 
-            // Extrair CipherText real
             byte[] cipherText = new byte[cipherTextWithIv.length - iv.length];
             System.arraycopy(cipherTextWithIv, iv.length, cipherText, 0, cipherText.length);
 
-            // Descriptografar
             SecretKey key = getSecretKey();
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
