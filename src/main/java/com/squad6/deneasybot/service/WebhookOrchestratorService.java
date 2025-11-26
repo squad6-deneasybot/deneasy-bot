@@ -32,12 +32,14 @@ public class WebhookOrchestratorService {
     private final WhatsAppFormatterService formatterService;
     private final UserRepository userRepository;
     private final FeedbackService feedbackService;
+    private final EncryptionService encryptionService;
 
     public WebhookOrchestratorService(AuthService authService, CompanyService companyService,
                                       UserService userService,
                                       MenuService menuService, ReportService reportService, FaqService faqService, ChatStateService chatStateService,
                                       JwtUtil jwtUtil, WhatsAppService whatsAppService,
-                                      WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService) {
+                                      WhatsAppFormatterService formatterService, UserRepository userRepository, FeedbackService feedbackService,
+                                      EncryptionService encryptionService) {
         this.authService = authService;
         this.companyService = companyService;
         this.userService = userService;
@@ -50,6 +52,7 @@ public class WebhookOrchestratorService {
         this.formatterService = formatterService;
         this.userRepository = userRepository;
         this.feedbackService = feedbackService;
+        this.encryptionService = encryptionService;
     }
 
     @Async
@@ -325,8 +328,11 @@ public class WebhookOrchestratorService {
 
     private void handleStateAwaitingReportPeriodChoice(String userPhone, String messageText) {
         User user = getUserByPhone(userPhone);
-        String appKey = user.getCompany().getAppKey();
-        String appSecret = user.getCompany().getAppSecret();
+
+        String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
+        String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
+        String companyName = user.getCompany().getName();
+
         String option = messageText.trim().toUpperCase();
 
         LocalDate startDate;
@@ -335,13 +341,13 @@ public class WebhookOrchestratorService {
         switch (option) {
             case "1":
                 startDate = endDate.withDayOfMonth(1);
-                generateAndSendReport(userPhone, appKey, appSecret, startDate, endDate);
+                generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
                 break;
 
             case "2":
                 startDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
                 endDate = startDate.with(TemporalAdjusters.lastDayOfMonth());
-                generateAndSendReport(userPhone, appKey, appSecret, startDate, endDate);
+                generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
                 break;
 
             case "3":
@@ -369,24 +375,26 @@ public class WebhookOrchestratorService {
             }
 
             User user = getUserByPhone(userPhone);
-            String appKey = user.getCompany().getAppKey();
-            String appSecret = user.getCompany().getAppSecret();
+
+            String appKey = encryptionService.decrypt(user.getCompany().getAppKey());
+            String appSecret = encryptionService.decrypt(user.getCompany().getAppSecret());
+            String companyName = user.getCompany().getName();
 
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(days - 1);
 
-            generateAndSendReport(userPhone, appKey, appSecret, startDate, endDate);
+            generateAndSendReport(userPhone, companyName, appKey, appSecret, startDate, endDate);
 
         } catch (NumberFormatException e) {
             whatsAppService.sendMessage(userPhone, "⚠️ Formato inválido. Digite apenas o número de dias (ex: 15).");
         }
     }
 
-    private void generateAndSendReport(String userPhone, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
+    private void generateAndSendReport(String userPhone, String companyName, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
         try {
             whatsAppService.sendMessage(userPhone, "⏳ Só um instante... gerando seu relatório!");
 
-            ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, startDate, endDate);
+            ReportSimpleDTO report = reportService.generateSimpleReport(companyName, appKey, appSecret, startDate, endDate);
             String formattedReport = formatterService.formatSimpleReport(report);
 
             whatsAppService.sendMessage(userPhone, formattedReport);

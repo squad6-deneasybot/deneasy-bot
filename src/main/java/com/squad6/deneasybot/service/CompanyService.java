@@ -17,23 +17,20 @@ public class CompanyService {
 
     private static final Logger logger = LoggerFactory.getLogger(CompanyService.class);
     private final CompanyRepository companyRepository;
+    private final EncryptionService encryptionService;
 
-    public CompanyService(CompanyRepository companyRepository) {
+    public CompanyService(CompanyRepository companyRepository, EncryptionService encryptionService) {
         this.companyRepository = companyRepository;
+        this.encryptionService = encryptionService;
     }
 
     @Transactional
     public Company createCompany(CompanyDTO dto) {
         logger.info("Criando nova empresa no banco: {}", dto.getCompanyName());
-
-        companyRepository.findByAppKey(dto.getAppKey()).ifPresent(existingCompany -> {
-            throw new DataIntegrityException("Já existe uma empresa cadastrada com esta App Key.");
-        });
-
         Company company = new Company();
         company.setName(dto.getCompanyName());
-        company.setAppKey(dto.getAppKey());
-        company.setAppSecret(dto.getAppSecret());
+        company.setAppKey(encryptionService.encrypt(dto.getAppKey()));
+        company.setAppSecret(encryptionService.encrypt(dto.getAppSecret()));
 
         return companyRepository.save(company);
     }
@@ -46,8 +43,8 @@ public class CompanyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa com ID " + id + " não encontrada."));
 
         company.setName(companyDetails.getCompanyName());
-        company.setAppKey(companyDetails.getAppKey());
-        company.setAppSecret(companyDetails.getAppSecret());
+        company.setAppKey(encryptionService.encrypt(companyDetails.getAppKey()));
+        company.setAppSecret(encryptionService.encrypt(companyDetails.getAppSecret()));
 
         Company updatedCompany = companyRepository.save(company);
         return new CompanyDTO(updatedCompany);

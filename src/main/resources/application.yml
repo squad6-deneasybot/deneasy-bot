@@ -30,6 +30,11 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+deneasy:
+  encryption:
+    secret-key: ${DENEASY_ENCRYPTION_SECRET}
+    salt: ${DENEASY_ENCRYPTION_SALT}
+
 omie:
   api:
    users:

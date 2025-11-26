@@ -28,7 +28,7 @@ public class ReportController {
         LocalDate endDate = LocalDate.now();
         LocalDate startDate = endDate.minusDays(30);
 
-        ReportSimpleDTO report = reportService.generateSimpleReport(appKey, appSecret, startDate, endDate);
+        ReportSimpleDTO report = reportService.generateSimpleReport("Solicitação via API", appKey, appSecret, startDate, endDate);
         return ResponseEntity.ok(report);
     }
 }
