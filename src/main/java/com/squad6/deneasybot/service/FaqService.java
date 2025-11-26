@@ -39,16 +39,19 @@ public class FaqService {
     private final UserRepository userRepository;
     private final WhatsAppFormatterService formatterService;
     private final CategoryCacheService categoryCacheService;
+    private final EncryptionService encryptionService;
 
     public FaqService(FinancialAggregatorService financialAggregatorService,
                       MovementFetcherService movementFetcherService, UserRepository userRepository,
                       WhatsAppFormatterService formatterService,
-                      CategoryCacheService categoryCacheService) {
+                      CategoryCacheService categoryCacheService,
+                      EncryptionService encryptionService) {
         this.financialAggregatorService = financialAggregatorService;
         this.movementFetcherService = movementFetcherService;
         this.userRepository = userRepository;
         this.formatterService = formatterService;
         this.categoryCacheService = categoryCacheService;
+        this.encryptionService = encryptionService;
     }
 
     public String getFaqMenu() {
@@ -61,8 +64,10 @@ public class FaqService {
         User user = userRepository.findByPhone(userPhone)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário autenticado não encontrado: " + userPhone));
         Company company = user.getCompany();
-        String appKey = company.getAppKey();
-        String appSecret = company.getAppSecret();
+
+        // Descriptografia (Fluxo de Leitura)
+        String appKey = encryptionService.decrypt(company.getAppKey());
+        String appSecret = encryptionService.decrypt(company.getAppSecret());
 
         return switch (option.trim()) {
             case "1" -> getTitulosAVencer(appKey, appSecret);

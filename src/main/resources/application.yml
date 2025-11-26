@@ -30,6 +30,11 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
 
+deneasy:
+  encryption:
+    secret-key: ${DENEASY_ENCRYPTION_SECRET} # Defina no .env (32 bytes)
+    salt: ${DENEASY_ENCRYPTION_SALT}       # Defina no .env (16 bytes)
+
 omie:
   api:
    users:

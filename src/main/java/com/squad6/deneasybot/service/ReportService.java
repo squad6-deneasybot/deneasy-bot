@@ -15,7 +15,7 @@ public class ReportService {
         this.financialAggregatorService = financialAggregatorService;
     }
 
-    public ReportSimpleDTO generateSimpleReport(String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
-        return financialAggregatorService.aggregateReportData(appKey, appSecret, startDate, endDate);
+    public ReportSimpleDTO generateSimpleReport(String companyName, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
+        return financialAggregatorService.aggregateReportData(companyName, appKey, appSecret, startDate, endDate);
     }
 }

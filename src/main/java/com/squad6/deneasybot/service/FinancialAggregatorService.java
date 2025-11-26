@@ -1,10 +1,8 @@
 package com.squad6.deneasybot.service;
 
-import com.squad6.deneasybot.model.Company;
 import com.squad6.deneasybot.model.ReportSimpleDTO;
 import com.squad6.deneasybot.model.OmieDTO;
 import com.squad6.deneasybot.model.OmieDTO.MovementDetail;
-import com.squad6.deneasybot.repository.CompanyRepository;
 import com.squad6.deneasybot.client.OmieErpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class FinancialAggregatorService {
@@ -24,20 +21,19 @@ public class FinancialAggregatorService {
 
     private final MovementFetcherService movementFetcherService;
     private final CategoryCacheService categoryCacheService;
-    private final CompanyRepository companyRepository;
     private final OmieErpClient omieErpClient;
 
     @Autowired
     public FinancialAggregatorService(MovementFetcherService movementFetcherService,
                                       CategoryCacheService categoryCacheService,
-                                      CompanyRepository companyRepository, OmieErpClient omieErpClient) {
+                                      OmieErpClient omieErpClient) {
         this.movementFetcherService = movementFetcherService;
         this.categoryCacheService = categoryCacheService;
-        this.companyRepository = companyRepository;
         this.omieErpClient = omieErpClient;
     }
 
-    public ReportSimpleDTO aggregateReportData(String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
+    // Adicionado parâmetro 'companyName'
+    public ReportSimpleDTO aggregateReportData(String companyName, String appKey, String appSecret, LocalDate startDate, LocalDate endDate) {
 
         List<MovementDetail> movements = movementFetcherService.fetchAllMovementsForPeriod(appKey, appSecret, startDate, endDate);
 
@@ -45,7 +41,7 @@ public class FinancialAggregatorService {
         BigDecimal custosVar = BigDecimal.ZERO;
         BigDecimal despesasFixas = BigDecimal.ZERO;
 
-        logger.info("Iniciando agregação de {} movimentos...", movements.size());
+        logger.info("Iniciando agregação de {} movimentos para a empresa '{}'...", movements.size(), companyName);
 
         for (MovementDetail movement : movements) {
             OmieDTO.MovementHeader header = movement.header();
@@ -92,22 +88,12 @@ public class FinancialAggregatorService {
             }
         }
 
-        String companyName = "Empresa não encontrada";
-        try {
-            Optional<Company> companyOptional = companyRepository.findByAppKey(appKey);
-            if (companyOptional.isPresent()) {
-                companyName = companyOptional.get().getName();
-            }
-        } catch (Exception e) {
-            logger.error("Erro ao buscar nome da empresa pelo appKey: {}", appKey, e);
-        }
-
         BigDecimal resultadoOp = receitaOp.subtract(custosVar).subtract(despesasFixas);
         String reportType = "Financeiro";
 
         return new ReportSimpleDTO(
                 reportType,
-                companyName,
+                companyName, // Usa o nome passado via parâmetro
                 startDate,
                 endDate,
                 receitaOp,
