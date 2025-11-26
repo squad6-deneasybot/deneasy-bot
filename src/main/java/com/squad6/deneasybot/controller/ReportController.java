@@ -1,0 +1,34 @@
+package com.squad6.deneasybot.controller;
+
+import com.squad6.deneasybot.model.ReportSimpleDTO;
+import com.squad6.deneasybot.service.ReportService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDate;
+
+@RestController
+@RequestMapping("/report")
+public class ReportController {
+
+    private final ReportService reportService;
+
+    public ReportController(ReportService reportService) {
+        this.reportService = reportService;
+    }
+
+    @GetMapping("/simple")
+    public ResponseEntity<ReportSimpleDTO> generateSimpleReport(
+            @RequestParam String appKey,
+            @RequestParam String appSecret) {
+
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate = endDate.minusDays(30);
+
+        ReportSimpleDTO report = reportService.generateSimpleReport("Solicitação via API", appKey, appSecret, startDate, endDate);
+        return ResponseEntity.ok(report);
+    }
+}
