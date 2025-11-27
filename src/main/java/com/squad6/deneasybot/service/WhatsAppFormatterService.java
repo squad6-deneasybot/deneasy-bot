@@ -32,6 +32,7 @@ public class WhatsAppFormatterService {
             menu.append("6️⃣ Relatório Automático (E-mail)\n");
         } else {
             menu.append("4️⃣ Sugerir Melhoria\n");
+            menu.append("5️⃣ Relatório Automático (E-mail)\n");
         }
 
         return menu.toString();

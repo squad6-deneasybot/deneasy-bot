@@ -15,7 +15,6 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @Service
 public class WebhookOrchestratorService {
@@ -202,6 +201,8 @@ public class WebhookOrchestratorService {
                 chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
             } else if ("5".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_WISHLIST);
+            } else if ("5".equals(option) && getUserProfile(userPhone) == UserProfile.EMPLOYEE) {
+                chatStateService.setState(userPhone, ChatState.AWAITING_SUBSCRIPTION_FREQUENCY);
             } else if ("6".equals(option) && getUserProfile(userPhone) == UserProfile.MANAGER) {
                 chatStateService.setState(userPhone, ChatState.AWAITING_SUBSCRIPTION_FREQUENCY);
             } else {

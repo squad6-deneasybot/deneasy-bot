@@ -67,7 +67,7 @@ public class MenuService {
                 if (profile == UserProfile.MANAGER) {
                     return whatsAppFormatterService.formatWishlistPrompt();
                 } else {
-                    throw new IllegalArgumentException("Opção inválida.");
+                    return whatsAppFormatterService.formatFrequencyMenu();
                 }
             case "6":
                 if (profile == UserProfile.MANAGER) {
