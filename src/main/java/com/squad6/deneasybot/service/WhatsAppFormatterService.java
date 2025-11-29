@@ -29,8 +29,10 @@ public class WhatsAppFormatterService {
         if (profile == UserProfile.MANAGER) {
             menu.append("4️⃣ Gerenciar Funcionários\n");
             menu.append("5️⃣ Sugerir Melhoria\n");
+            menu.append("6️⃣ Relatório Automático (E-mail)\n");
         } else {
             menu.append("4️⃣ Sugerir Melhoria\n");
+            menu.append("5️⃣ Relatório Automático (E-mail)\n");
         }
 
         return menu.toString();
@@ -232,6 +234,24 @@ public class WhatsAppFormatterService {
             3️⃣ Personalizado (últimos X dias)
 
             V. Voltar ao Menu Principal""";
+    }
+
+    public String formatFrequencyMenu() {
+        return """
+                *📅 Configuração de Relatório Automático*
+                
+                Com que frequência você deseja receber o relatório financeiro no seu e-mail?
+                
+                1️⃣ Semanal (Toda segunda-feira ou a cada 7 dias)
+                2️⃣ Quinzenal (A cada 15 dias)
+                3️⃣ Mensal (Todo dia 1º)
+                4️⃣ Cancelar assinatura existente
+                
+                V. Voltar ao Menu Principal""";
+    }
+
+    public String formatSubscriptionSuccess(String frequency) {
+        return "✅ Configurado! Você receberá o relatório *" + frequency + "* no seu e-mail cadastrado.";
     }
 
     public String formatWishlistPrompt() {
