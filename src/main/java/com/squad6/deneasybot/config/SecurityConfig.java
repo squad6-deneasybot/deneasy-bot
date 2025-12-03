@@ -3,6 +3,7 @@ package com.squad6.deneasybot.config;
 import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -23,6 +24,9 @@ public class SecurityConfig {
 
     private final JwtAdminAuthFilter jwtAdminAuthFilter;
 
+    @Value("${spring.profiles.active:prod}")
+    private String activeProfile;
+
     public SecurityConfig(JwtAdminAuthFilter jwtAdminAuthFilter) {
         this.jwtAdminAuthFilter = jwtAdminAuthFilter;
     }
@@ -30,12 +34,39 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        http.cors(cors -> cors.configurationSource(corsConfigurationSource())).csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/actuator/health").permitAll()
-                        .requestMatchers("/auth/admin/login").permitAll().requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/webhook").permitAll().requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .anyRequest().authenticated())
+        http.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/actuator/health").permitAll();
+
+                    auth.requestMatchers("/webhook").permitAll();
+
+                    auth.requestMatchers(
+                            "/auth/admin/login",
+                            "/auth/logout",
+                            "/auth/validate-phone",
+                            "/auth/request-email-code",
+                            "/auth/verify-email-code"
+                    ).permitAll();
+
+                    if ("dev".equals(activeProfile)) {
+                        auth.requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/h2-console/**"
+                        ).permitAll();
+                    } else {
+                        auth.requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/h2-console/**"
+                        ).denyAll();
+                    }
+
+                    auth.anyRequest().authenticated();
+                })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::disable))
                 .addFilterBefore(jwtAdminAuthFilter, UsernamePasswordAuthenticationFilter.class);
