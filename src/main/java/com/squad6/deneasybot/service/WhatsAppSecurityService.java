@@ -40,8 +40,10 @@ public class WhatsAppSecurityService {
                 throw new SecurityException("Assinatura da requisição inválida.");
             }
 
+        } catch (SecurityException e) {
+            throw e;
         } catch (Exception e) {
-            logger.error("Erro ao validar assinatura do webhook", e);
+            logger.error("Erro técnico ao validar assinatura", e);
             throw new SecurityException("Erro interno na validação de segurança.");
         }
     }
