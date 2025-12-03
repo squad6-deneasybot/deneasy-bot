@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.controller;
 
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
@@ -23,6 +24,7 @@ public class AuthController {
     }
 
     @PostMapping("/admin/login")
+    @RateLimiter(name = "authApi")
     public ResponseEntity<AdminAuthResponseDTO> adminLogin(@RequestBody AdminLoginRequestDTO request) {
         AuthService.AdminLoginResult result = authService.loginAdmin(request.email(), request.password());
 
@@ -67,12 +69,14 @@ public class AuthController {
     }
 
     @PostMapping("/request-email-code")
+    @RateLimiter(name = "authApi")
     public ResponseEntity<SendEmailCodeResponseDTO> requestEmailCode(@RequestBody SendEmailCodeRequestDTO request) {
         SendEmailCodeResponseDTO response = authService.requestEmailCode(request);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/verify-email-code")
+    @RateLimiter(name = "authApi")
     public ResponseEntity<VerifyEmailCodeResponseDTO> verifyEmailCode(@RequestHeader("X-Code") String inputCode,
             @RequestBody VerifyEmailCodeRequestDTO dto) {
         VerifyEmailCodeResponseDTO response = authService.verifyEmailCode(dto.tokenHash(), inputCode, dto);
