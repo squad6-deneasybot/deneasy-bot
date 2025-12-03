@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.exception;
 
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -82,6 +83,17 @@ public class GlobalExceptionHandler {
                 "message", ex.getMessage()
         );
         return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(RequestNotPermitted.class)
+    public ResponseEntity<Object> handleRateLimitException(RequestNotPermitted ex) {
+        logger.warn("Rate limit excedido: {}", ex.getMessage());
+        Map<String, Object> body = Map.of(
+                "status", HttpStatus.TOO_MANY_REQUESTS.value(),
+                "error", "Too Many Requests",
+                "message", "Muitas tentativas. Por favor, aguarde 1 minuto e tente novamente."
+        );
+        return new ResponseEntity<>(body, HttpStatus.TOO_MANY_REQUESTS);
     }
 
     @ExceptionHandler(Exception.class)
