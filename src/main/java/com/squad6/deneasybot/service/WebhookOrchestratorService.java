@@ -63,6 +63,18 @@ public class WebhookOrchestratorService {
     public void processMessage(String userPhone, String messageText) {
 
         if ("menu".equalsIgnoreCase(messageText.trim())) {
+            ChatState currentState = chatStateService.getState(userPhone);
+
+            if (currentState == ChatState.AWAITING_APP_KEY ||
+                    currentState == ChatState.AWAITING_APP_SECRET ||
+                    currentState == ChatState.AWAITING_EMAIL ||
+                    currentState == ChatState.AWAITING_EMAIL_CODE) {
+
+                logger.warn("Tentativa de bypass de autenticação bloqueada para usuário {}", userPhone);
+                whatsAppService.sendMessage(userPhone, "🚫 Você precisa concluir o processo de login/cadastro antes de acessar o menu.");
+                return;
+            }
+
             try {
                 UserProfile profile = getUserProfile(userPhone);
 
