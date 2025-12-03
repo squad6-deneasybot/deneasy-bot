@@ -73,6 +73,10 @@ resilience4j:
         limitForPeriod: 4
         limitRefreshPeriod: 1s
         timeoutDuration: 5s
+      authApi:
+        limitForPeriod: 5
+        limitRefreshPeriod: 1m
+        timeoutDuration: 0s
   bulkhead:
     instances:
       omieApi:
