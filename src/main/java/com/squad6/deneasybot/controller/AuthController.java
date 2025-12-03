@@ -1,5 +1,6 @@
 package com.squad6.deneasybot.controller;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,9 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Value("${deneasy.security.cookie-secure:false}")
+    private boolean cookieSecure;
+
     public AuthController(AuthService authService) {
         this.authService = authService;
     }
@@ -24,10 +28,10 @@ public class AuthController {
 
         ResponseCookie cookie = ResponseCookie.from("accessToken", result.jwt())
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(24 * 60 * 60)
-                .sameSite("Strict")
+                .sameSite("None")
                 .build();
 
         AdminAuthResponseDTO responseDTO = new AdminAuthResponseDTO(
@@ -45,10 +49,10 @@ public class AuthController {
     public ResponseEntity<String> logout() {
         ResponseCookie cookie = ResponseCookie.from("accessToken", "")
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Strict")
+                .sameSite("None")
                 .build();
 
         return ResponseEntity.ok()

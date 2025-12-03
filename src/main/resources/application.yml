@@ -34,6 +34,8 @@ deneasy:
   encryption:
     secret-key: ${DENEASY_ENCRYPTION_SECRET}
     salt: ${DENEASY_ENCRYPTION_SALT}
+  security:
+    cookie-secure: false
 
 omie:
   api:
