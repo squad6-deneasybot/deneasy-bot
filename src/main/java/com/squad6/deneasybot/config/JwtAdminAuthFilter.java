@@ -5,6 +5,7 @@ import com.squad6.deneasybot.repository.SuperAdminRepository;
 import com.squad6.deneasybot.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.lang.NonNull;
@@ -34,43 +35,52 @@ public class JwtAdminAuthFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String adminEmail;
+        String jwt = null;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        jwt = authHeader.substring(7);
-
-        try {
-            adminEmail = jwtUtil.extractEmail(jwt);
-        } catch (Exception e) {
-            logger.warn("Tentativa de acesso com token JWT inválido");
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (adminEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            SuperAdmin admin = this.superAdminRepository.findByEmail(adminEmail).orElse(null);
-
-            if (admin != null && jwtUtil.isTokenValid(jwt)) {
-                UserDetails userDetails = new org.springframework.security.core.userdetails.User(
-                        admin.getEmail(),
-                        "",
-                        new ArrayList<>()
-                );
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    jwt = cookie.getValue();
+                    break;
+                }
             }
         }
+
+        final String authHeader = request.getHeader("Authorization");
+        if (jwt == null && authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
+        }
+
+        if (jwt == null) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        try {
+            String adminEmail = jwtUtil.extractEmail(jwt);
+
+            if (adminEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                SuperAdmin admin = this.superAdminRepository.findByEmail(adminEmail).orElse(null);
+
+                if (admin != null && jwtUtil.isTokenValid(jwt)) {
+                    UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                            admin.getEmail(),
+                            "",
+                            new ArrayList<>()
+                    );
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities()
+                    );
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("Tentativa de acesso com token JWT inválido ou expirado");
+        }
+
         filterChain.doFilter(request, response);
     }
 }

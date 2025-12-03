@@ -1,5 +1,7 @@
 package com.squad6.deneasybot.controller;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,15 +20,40 @@ public class AuthController {
 
     @PostMapping("/admin/login")
     public ResponseEntity<AdminAuthResponseDTO> adminLogin(@RequestBody AdminLoginRequestDTO request) {
-        AdminAuthResponseDTO response = authService.loginAdmin(request.email(), request.password());
-        return ResponseEntity.ok(response);
+        AuthService.AdminLoginResult result = authService.loginAdmin(request.email(), request.password());
+
+        ResponseCookie cookie = ResponseCookie.from("accessToken", result.jwt())
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(24 * 60 * 60)
+                .sameSite("Strict")
+                .build();
+
+        AdminAuthResponseDTO responseDTO = new AdminAuthResponseDTO(
+                result.admin().getId(),
+                result.admin().getName(),
+                result.admin().getEmail()
+        );
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(responseDTO);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.replace("Bearer ", "").trim();
-        authService.logout(token);
-        return ResponseEntity.ok("Logout realizado com sucesso.");
+    public ResponseEntity<String> logout() {
+        ResponseCookie cookie = ResponseCookie.from("accessToken", "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body("Logout realizado com sucesso.");
     }
 
     @PostMapping("/validate-phone")

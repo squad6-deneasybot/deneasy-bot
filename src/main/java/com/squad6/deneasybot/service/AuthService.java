@@ -38,8 +38,10 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    public record AdminLoginResult(String jwt, SuperAdmin admin) {}
+
     @Transactional(readOnly = true)
-    public AdminAuthResponseDTO loginAdmin(String email, String password) {
+    public AdminLoginResult loginAdmin(String email, String password) {
         SuperAdmin admin = superAdminRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("E-mail ou senha inválidos."));
 
@@ -48,15 +50,16 @@ public class AuthService {
         }
 
         String jwt = jwtUtil.generateSessionToken(admin.getEmail());
-        return new AdminAuthResponseDTO(admin.getId(), admin.getName(), admin.getEmail(), jwt);
+        return new AdminLoginResult(jwt, admin);
     }
 
     public void logout(String token) {
-        User user = userRepository.findBySessionToken(token)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
-
-        user.setSessionToken(null);
-        userRepository.save(user);
+        if (token != null && !token.isBlank()) {
+            userRepository.findBySessionToken(token).ifPresent(user -> {
+                user.setSessionToken(null);
+                userRepository.save(user);
+            });
+        }
     }
 
     public ValidatePhoneResponseDTO validatePhone(ValidatePhoneRequestDTO request) {
