@@ -2,8 +2,8 @@
 
 Este guia descreve o passo a passo para colocar a solução no ar, partindo de uma máquina nova e utilizando os repositórios oficiais da Squad.
 
-- [Front-End](https://github.com/squad6-deneasybot/deneasy-bot)
-- [Back-End](https://github.com/squad6-deneasybot/deneasy-admin-hub)
+- [Back-End](https://github.com/squad6-deneasybot/deneasy-bot)
+- [Front-End](https://github.com/squad6-deneasybot/deneasy-admin-hub)
 
 ## Parte 1 — Preparando o Computador
 
